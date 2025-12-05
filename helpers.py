@@ -42,21 +42,12 @@ def require_model():
 
 
 # --- HELPER: PREPROCESSING DATA ---
-def preprocess_data(df: pd.DataFrame):
-    """ ... (Tidak ada perubahan pada logika preprocessing) ... """
+def preprocess_data(df: pd.DataFrame, target_col: str = None):
+    """
+    Preprocessing data secara fleksibel - otomatis menggunakan semua kolom numerik
+    dari dataset yang diupload.
+    """
     df = df.copy()  # buat salinan agar tidak mengubah dataframe asli
-
-    # daftar kolom yang wajib ada (fitur + target)
-    all_cols = st.session_state["features"] + [TARGET_COL] # Menggunakan TARGET_COL baru
-
-    # cek apakah ada kolom yang hilang
-    missing = [c for c in all_cols if c not in df.columns]
-    if missing:
-        st.error(f"❌ Kolom berikut tidak ditemukan di dataset: {missing}")
-        st.stop()
-
-    # ambil hanya kolom yang dibutuhkan
-    df = df[all_cols]
 
     # simpan informasi awal sebelum dibersihkan
     rows_before = df.shape[0]          # jumlah baris sebelum preprocessing
@@ -72,6 +63,14 @@ def preprocess_data(df: pd.DataFrame):
     for col in df.columns:
         if df[col].dtype == "object":
             df[col] = df[col].astype("category").cat.codes
+
+    # Update features di session state dengan kolom dari dataset
+    if target_col and target_col in df.columns:
+        st.session_state["target_col"] = target_col
+        st.session_state["features"] = [c for c in df.columns if c != target_col]
+    else:
+        # Jika target_col tidak dispesifikasi, gunakan semua kolom sebagai features
+        st.session_state["features"] = list(df.columns)
 
     # ringkasan info preprocessing untuk ditampilkan di UI
     info = {

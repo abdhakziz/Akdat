@@ -65,12 +65,16 @@ with st.sidebar:
     
     # 1. Simpan kunci halaman saat ini sebelum diupdate oleh st.radio
     current_page_key = st.session_state.get("page", "Home")
+    
+    # Reverse mapping: Ubah nama page internal ke nama menu untuk st.radio
+    reverse_menu_map = {v: k for k, v in menu_map.items()}
+    display_menu_key = reverse_menu_map.get(current_page_key, current_page_key)
 
     # 2. Tampilkan st.radio
     menu = st.radio(
         '',
         menu_options,
-        index=menu_options.index(current_page_key) if current_page_key in menu_options else 0,
+        index=menu_options.index(display_menu_key) if display_menu_key in menu_options else 0,
     )
     
     # 3. Tentukan kunci halaman yang baru dipilih

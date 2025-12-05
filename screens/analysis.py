@@ -6,131 +6,184 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 
 from helpers import (
-    require_clean_data,
     plot_confusion_matrix,
     plot_feature_importance,
-    TARGET_COL,
 )
 
 
 def show_analysis():
-    # Judul halaman Analisis / Training model
-    st.title("🧠 Training Model & Evaluasi")
+    # Judul halaman
+    st.markdown("<h1 style='text-align: center; color: #A67D45;'>Data Analysis</h1>", unsafe_allow_html=True)
 
-    require_clean_data()
+    # Pastikan data sudah di-preprocess
+    if st.session_state.get("clean_df") is None:
+        st.warning("⚠️ Silakan lakukan preprocessing data terlebih dahulu di halaman **Preprocessing Data**.")
+        if st.button("← Kembali ke Preprocessing"):
+            st.session_state["page"] = "Preprocessing Data"
+            st.rerun()
+        return
+    
     df_clean = st.session_state["clean_df"]
+    columns_list = df_clean.columns.tolist()
 
-    # Card penjelasan singkat
-    st.markdown(
-        """
-        <div class="data-card">
-            <p style="font-size: 1rem; color: #555;">
-                Pada halaman ini, model <strong>Random Forest Classifier</strong> akan dilatih menggunakan 
-                data hasil preprocessing untuk memprediksi risiko Hipertensi.
-            </p>
+    # -----------------------------------------
+    # PILIH VARIABEL PREDIKTOR
+    # -----------------------------------------
+    st.markdown("""
+    <div style="background: #F0E9E1; border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+        <div style="margin-bottom: 10px;">
+            <span style="color: #A67D45; font-weight: 600;">Pilih Variabel Prediktor</span>
         </div>
-        """,
-        unsafe_allow_html=True,
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Dropdown untuk memilih variabel prediktor (multiselect)
+    # Default: semua kolom kecuali kolom terakhir (biasanya target)
+    default_predictors = columns_list[:-1] if len(columns_list) > 1 else columns_list
+    selected_predictors = st.multiselect(
+        "Pilih kolom prediktor (fitur)",
+        options=columns_list,
+        default=st.session_state.get("selected_predictors", default_predictors),
+        key="predictor_select",
+        label_visibility="collapsed"
     )
+    st.session_state["selected_predictors"] = selected_predictors
 
     # -----------------------------------------
-    # Pengaturan Model
+    # PILIH VARIABEL TARGET
     # -----------------------------------------
-    with st.expander("⚙️ Pengaturan Model (Opsional)"):
-        col1, col2 = st.columns(2)
-        with col1:
-            n_estimators = st.slider(
-                "🌳 Jumlah Trees (n_estimators)",
-                50,
-                500,
-                200,
-                step=50,
-                help="Jumlah pohon keputusan dalam Random Forest",
-            )
-        with col2:
-            test_size = st.slider(
-                "📊 Proporsi Data Testing",
-                0.1,
-                0.4,
-                0.2,
-                step=0.05,
-                help="Persentase data yang digunakan untuk testing",
-            )
+    st.markdown("""
+    <div style="background: #F0E9E1; border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+        <div style="margin-bottom: 10px;">
+            <span style="color: #A67D45; font-weight: 600;">Pilih Variabel Target</span>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Filter kolom yang tidak dipilih sebagai prediktor untuk opsi target
+    available_targets = [col for col in columns_list if col not in selected_predictors] if selected_predictors else columns_list
+    
+    # Default target: kolom terakhir atau kolom yang tersisa
+    default_target = columns_list[-1] if columns_list else None
+    if default_target in selected_predictors and available_targets:
+        default_target = available_targets[0]
+    
+    selected_target = st.selectbox(
+        "Pilih kolom target (label)",
+        options=available_targets if available_targets else columns_list,
+        index=0,
+        key="target_select",
+        label_visibility="collapsed"
+    )
+    st.session_state["target_col"] = selected_target
 
     # -----------------------------------------
-    # Tombol Training
+    # HASIL ANALISIS
     # -----------------------------------------
-    if st.button("🚀 Mulai Training Model", key="run_training"):
-        with st.spinner("⏳ Sedang melatih model Random Forest..."):
-            X = df_clean[st.session_state["features"]]
-            y = df_clean[TARGET_COL]
+    st.markdown("""
+    <div style="background: #F0E9E1; border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+        <div style="margin-bottom: 10px;">
+            <span style="color: #A67D45; font-weight: 600;">Hasil Analisis</span>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
-            X_train, X_test, y_train, y_test = train_test_split(
-                X, y, test_size=test_size, random_state=42, stratify=y
-            )
+    # Tombol untuk menjalankan analisis
+    if selected_predictors and selected_target:
+        if st.button("🚀 Jalankan Analisis", use_container_width=True, key="run_analysis"):
+            with st.spinner("⏳ Sedang melatih model Random Forest..."):
+                try:
+                    X = df_clean[selected_predictors]
+                    y = df_clean[selected_target]
+                    
+                    # Simpan features untuk digunakan di halaman lain
+                    st.session_state["features"] = selected_predictors
+                    
+                    X_train, X_test, y_train, y_test = train_test_split(
+                        X, y, test_size=0.2, random_state=42
+                    )
+                    
+                    model = RandomForestClassifier(
+                        n_estimators=200,
+                        random_state=42,
+                        class_weight="balanced",
+                        n_jobs=-1,
+                    )
+                    
+                    model.fit(X_train, y_train)
+                    y_pred = model.predict(X_test)
+                    
+                    acc = accuracy_score(y_test, y_pred)
+                    cm = confusion_matrix(y_test, y_pred)
+                    report = classification_report(y_test, y_pred, output_dict=True)
+                    
+                    st.session_state["rf_model"] = model
+                    st.session_state["acc"] = acc
+                    st.session_state["cm"] = cm
+                    st.session_state["report"] = report
+                    st.session_state["X_cols"] = X.columns.tolist()
+                    
+                    st.success("✅ Analisis selesai!")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"❌ Error saat analisis: {str(e)}")
+    else:
+        st.info("ℹ️ Pilih variabel prediktor dan target terlebih dahulu untuk menjalankan analisis.")
 
-            model = RandomForestClassifier(
-                n_estimators=n_estimators,
-                random_state=42,
-                class_weight="balanced",
-                n_jobs=-1,
-            )
-
-            model.fit(X_train, y_train)
-            y_pred = model.predict(X_test)
-
-            acc = accuracy_score(y_test, y_pred)
-            cm = confusion_matrix(y_test, y_pred)
-            report = classification_report(y_test, y_pred, output_dict=True)
-
-            st.session_state["rf_model"] = model
-            st.session_state["acc"] = acc
-            st.session_state["cm"] = cm
-            st.session_state["report"] = report
-            st.session_state["X_cols"] = X.columns.tolist()
-
-        st.success("✅ Training model selesai!")
-        st.rerun()
-
-    # -------------------------------------------------
-    # BLOK INI SELALU TAMPIL jika model sudah tersedia
-    # -------------------------------------------------
+    # -----------------------------------------
+    # TAMPILKAN HASIL JIKA SUDAH ADA
+    # -----------------------------------------
     if st.session_state.get("rf_model") is not None:
-
-        model = st.session_state["rf_model"]
         acc = st.session_state["acc"]
         cm = st.session_state["cm"]
         report = st.session_state["report"]
         X_cols = st.session_state["X_cols"]
+        model = st.session_state["rf_model"]
+        
+        # Tampilkan hasil dalam card hijau
+        st.markdown("""
+        <div style="background: #d4edda; border-radius: 12px; padding: 20px; margin-bottom: 20px; border-left: 4px solid #28a745;">
+            <div style="display: flex; justify-content: space-around; flex-wrap: wrap; gap: 15px;">
+                <div style="text-align: center;">
+                    <div style="font-weight: 600; color: #155724;">Akurasi Model</div>
+                    <div style="font-size: 1.8rem; color: #155724;">""" + f"{acc*100:.2f}%" + """</div>
+                </div>
+                <div style="text-align: center;">
+                    <div style="font-weight: 600; color: #155724;">Jumlah Fitur</div>
+                    <div style="font-size: 1.8rem; color: #155724;">""" + f"{len(X_cols)}" + """</div>
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Expander untuk detail
+        with st.expander("📊 Lihat Confusion Matrix"):
+            unique_labels = df_clean[selected_target].unique()
+            labels = [f"Class {i}" for i in sorted(unique_labels)]
+            plot_confusion_matrix(cm, labels=labels)
+        
+        with st.expander("📈 Lihat Classification Report"):
+            report_df = pd.DataFrame(report).transpose()
+            st.dataframe(report_df.style.background_gradient(cmap="Greens"), use_container_width=True)
+        
+        with st.expander("🎯 Lihat Feature Importance"):
+            plot_feature_importance(model, X_cols)
 
-        st.markdown("### 📊 Hasil Evaluasi Model")
-
-        c1, c2, c3, c4 = st.columns(4)
-        with c1:
-            st.metric("🎯 Akurasi", f"{acc*100:.2f}%")
-        with c2:
-            st.metric("🌳 Trees", f"{n_estimators}")
-        with c3:
-            st.metric("📊 Training", f"(otomatis)")
-        with c4:
-            st.metric("📊 Testing", f"(otomatis)")
-
-        st.markdown("### 📊 Confusion Matrix")
-        # Diubah label
-        plot_confusion_matrix(cm, labels=["Tidak Hipertensi (0)", "Hipertensi (1)"]) 
-
-        st.markdown("### 📈 Classification Report")
-        report_df = pd.DataFrame(report).transpose()
-        st.dataframe(report_df.style.background_gradient(cmap="Reds"), use_container_width=True)
-
-        st.markdown("### 🎯 Feature Importance")
-        plot_feature_importance(model, X_cols)
-
-        # -----------------------------------------
-        # TOMBOL LANJUT — selalu muncul
-        # -----------------------------------------
-        if st.button("➡️ Lanjut ke Visualisasi", key="goto_viz"):
-            st.session_state["page"] = "Data Visualization"
+    # -----------------------------------------
+    # TOMBOL NAVIGASI: PREVIOUS & NEXT
+    # -----------------------------------------
+    st.markdown("<br>", unsafe_allow_html=True)
+    col_prev, col_spacer, col_next = st.columns([1, 2, 1])
+    
+    with col_prev:
+        if st.button("← Previous", use_container_width=True, key="prev_btn"):
+            st.session_state["page"] = "Preprocessing Data"
             st.rerun()
-
-        st.success("✅ Model sudah tersedia dan siap digunakan untuk prediksi.")
+    
+    with col_next:
+        if st.session_state.get("rf_model") is not None:
+            if st.button("Next →", use_container_width=True, key="next_btn"):
+                st.session_state["page"] = "Data Visualization"
+                st.rerun()
+        else:
+            st.button("Next →", use_container_width=True, key="next_btn_disabled", disabled=True)

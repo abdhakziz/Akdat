@@ -5,149 +5,163 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-# Import helper functions dan konstanta dari helpers.py
-from helpers import (
-    require_clean_data,           
-    generate_pdf_visualizations,  
-    plot_feature_importance,      
-    TARGET_COL,                   # TARGET_COL = "hypertension"
-)
-
 
 def show_visualization():
-    # Judul halaman utama
-    st.title("📊 Visualisasi & Eksplorasi Data Hipertensi")
+    # Judul halaman
+    st.markdown("<h1 style='text-align: center; color: #A67D45;'>Data Visualization</h1>", unsafe_allow_html=True)
 
-    require_clean_data()
+    # Pastikan data sudah di-preprocess
+    if st.session_state.get("clean_df") is None:
+        st.warning("⚠️ Silakan lakukan preprocessing data terlebih dahulu di halaman **Preprocessing Data**.")
+        if st.button("← Kembali ke Preprocessing"):
+            st.session_state["page"] = "Preprocessing Data"
+            st.rerun()
+        return
+    
     df = st.session_state["clean_df"]
+    columns_list = df.columns.tolist()
 
-    tab1, tab2, tab3, tab4 = st.tabs(
-        ["📈 Distribusi Data", "🔥 Korelasi Fitur", "🎯 Feature Importance", "💾 Export PDF"]
+    # -----------------------------------------
+    # PILIH VISUALISASI
+    # -----------------------------------------
+    st.markdown("""
+    <div style="background: #F0E9E1; border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+        <div style="margin-bottom: 10px;">
+            <span style="color: #A67D45; font-weight: 600;">Pilih Visualisasi</span>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Opsi visualisasi
+    viz_options = [
+        "Distribusi Data (Histogram)",
+        "Korelasi Antar Fitur (Heatmap)",
+        "Bar Chart - Perbandingan Kolom",
+        "Scatter Plot - Hubungan 2 Variabel",
+        "Box Plot - Distribusi per Kategori"
+    ]
+    
+    selected_viz = st.selectbox(
+        "Pilih jenis visualisasi",
+        options=viz_options,
+        key="viz_select",
+        label_visibility="collapsed"
     )
 
-    # ==========================================================
-    # --- TAB 1: Distribusi Data & Proporsi Hipertensi ---
-    # ==========================================================
-    with tab1:
-        st.markdown("### 📊 Distribusi Usia")
-
-        fig1, ax1 = plt.subplots(figsize=(10, 5))
-        sns.histplot(df["age"], bins=20, kde=True, ax=ax1, color="#A67D45") # Ganti warna
-        ax1.set_xlabel("Usia (tahun)", fontsize=12, fontweight="bold")
-        ax1.set_ylabel("Frekuensi", fontsize=12, fontweight="bold")
-        ax1.set_title("Distribusi Usia Pasien", fontsize=14, fontweight="bold", pad=15)
-        plt.tight_layout()
-        st.pyplot(fig1)
-
-        st.markdown("### 🏥 Proporsi Hipertensi") # Diubah
-
-        col1, col2 = st.columns([2, 1])
-        with col1:
-            fig2, ax2 = plt.subplots(figsize=(8, 5))
-            heart_counts = df[TARGET_COL].value_counts()
-            colors = ["#899581", "#A67D45"] # Warna baru
-            bars = ax2.bar(heart_counts.index, heart_counts.values, color=colors)
-            ax2.set_xticks([0, 1])
-            ax2.set_xticklabels(["Tidak (0)", "Ya (1)"], fontsize=11, fontweight="bold") # Diubah
-            ax2.set_ylabel("Jumlah", fontsize=12, fontweight="bold")
-            ax2.set_title(
-                "Distribusi Label Hipertensi", fontsize=14, fontweight="bold", pad=15 # Diubah
-            )
-
-            for bar in bars:
-                height = bar.get_height()
-                ax2.text(
-                    bar.get_x() + bar.get_width() / 2.0,  
-                    height,                               
-                    f"{int(height)}",                     
-                    ha="center",
-                    va="bottom",
-                    fontsize=11,
-                    fontweight="bold",
-                )
+    # -----------------------------------------
+    # HASIL VISUALISASI
+    # -----------------------------------------
+    st.markdown("""
+    <div style="background: #F0E9E1; border-radius: 12px; padding: 20px; margin-bottom: 20px; min-height: 300px;">
+        <div style="margin-bottom: 10px;">
+            <span style="color: #A67D45; font-weight: 600;">Hasil Visualisasi</span>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Render visualisasi berdasarkan pilihan
+    if selected_viz == "Distribusi Data (Histogram)":
+        # Pilih kolom untuk histogram
+        numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+        if numeric_cols:
+            selected_col = st.selectbox("Pilih kolom untuk histogram:", numeric_cols, key="hist_col")
+            
+            fig, ax = plt.subplots(figsize=(10, 5))
+            sns.histplot(df[selected_col], bins=20, kde=True, ax=ax, color="#A67D45")
+            ax.set_xlabel(selected_col, fontsize=12, fontweight="bold")
+            ax.set_ylabel("Frekuensi", fontsize=12, fontweight="bold")
+            ax.set_title(f"Distribusi {selected_col}", fontsize=14, fontweight="bold", pad=15)
             plt.tight_layout()
-            st.pyplot(fig2)
-
-        with col2:
-            st.metric(
-                "✅ Tidak Hipertensi", # Diubah
-                f"{heart_counts.get(0, 0):,}",
-                help="Jumlah kasus tanpa Hipertensi",
-            )
-            st.metric(
-                "⚠️ Risiko Hipertensi", # Diubah
-                f"{heart_counts.get(1, 0):,}",
-                help="Jumlah kasus risiko Hipertensi",
-            )
-            ratio = (
-                (heart_counts.get(1, 0) / heart_counts.get(0, 1)) * 100
-                if heart_counts.get(0, 1) > 0
-                else 0
-            )
-            st.metric("📊 Rasio", f"{ratio:.1f}%", help="Persentase kasus risiko Hipertensi")
-
-    # =====================================
-    # --- TAB 2: Heatmap Korelasi Fitur ---
-    # =====================================
-    with tab2:
-        st.markdown("### 🔥 Heatmap Korelasi Fitur")
-
-        fig3, ax3 = plt.subplots(figsize=(12, 10))
+            st.pyplot(fig)
+        else:
+            st.info("ℹ️ Tidak ada kolom numerik untuk ditampilkan.")
+    
+    elif selected_viz == "Korelasi Antar Fitur (Heatmap)":
+        fig, ax = plt.subplots(figsize=(12, 8))
         corr = df.corr()
         mask = np.triu(np.ones_like(corr, dtype=bool))
         sns.heatmap(
             corr,
             mask=mask,
-            cmap="Reds",
-            ax=ax3,
-            annot=False,
+            cmap="YlOrBr",
+            ax=ax,
+            annot=True if len(corr) <= 10 else False,
+            fmt=".2f" if len(corr) <= 10 else None,
             square=True,
             linewidths=0.5,
             cbar_kws={"shrink": 0.8},
         )
-        ax3.set_title("Heatmap Korelasi Antar Fitur", fontsize=14, fontweight="bold", pad=20)
+        ax.set_title("Heatmap Korelasi Antar Fitur", fontsize=14, fontweight="bold", pad=20)
         plt.tight_layout()
-        st.pyplot(fig3)
-
-        st.markdown("### 🔍 Top 10 Korelasi dengan Target")
-
-        target_corr = (
-            corr[TARGET_COL]                 
-            .drop(TARGET_COL)                
-            .abs()                           
-            .sort_values(ascending=False)    
-            .head(10)                        
-        )
-
-        fig_corr, ax_corr = plt.subplots(figsize=(10, 6))
-        colors_corr = plt.cm.Reds(np.linspace(0.4, 0.8, len(target_corr)))
-        ax_corr.barh(target_corr.index, target_corr.values, color=colors_corr)
-        ax_corr.set_xlabel("Korelasi (Absolut)", fontsize=12, fontweight="bold")
-        ax_corr.set_title(
-            "Top 10 Fitur Berkorelasi dengan Hipertensi", # Diubah
-            fontsize=14,
-            fontweight="bold",
-            pad=15,
-        )
+        st.pyplot(fig)
+    
+    elif selected_viz == "Bar Chart - Perbandingan Kolom":
+        selected_col = st.selectbox("Pilih kolom untuk bar chart:", columns_list, key="bar_col")
+        
+        fig, ax = plt.subplots(figsize=(10, 5))
+        value_counts = df[selected_col].value_counts()
+        colors = plt.cm.YlOrBr(np.linspace(0.4, 0.8, len(value_counts)))
+        bars = ax.bar(value_counts.index.astype(str), value_counts.values, color=colors)
+        ax.set_xlabel(selected_col, fontsize=12, fontweight="bold")
+        ax.set_ylabel("Jumlah", fontsize=12, fontweight="bold")
+        ax.set_title(f"Distribusi {selected_col}", fontsize=14, fontweight="bold", pad=15)
+        
+        # Tambahkan label di atas bar
+        for bar in bars:
+            height = bar.get_height()
+            ax.text(bar.get_x() + bar.get_width()/2., height, f'{int(height)}',
+                    ha='center', va='bottom', fontsize=10, fontweight='bold')
+        
+        plt.xticks(rotation=45, ha='right')
         plt.tight_layout()
-        st.pyplot(fig_corr)
+        st.pyplot(fig)
+    
+    elif selected_viz == "Scatter Plot - Hubungan 2 Variabel":
+        numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+        if len(numeric_cols) >= 2:
+            col1, col2 = st.columns(2)
+            with col1:
+                x_col = st.selectbox("Pilih variabel X:", numeric_cols, key="scatter_x")
+            with col2:
+                y_col = st.selectbox("Pilih variabel Y:", numeric_cols, index=1 if len(numeric_cols) > 1 else 0, key="scatter_y")
+            
+            fig, ax = plt.subplots(figsize=(10, 6))
+            ax.scatter(df[x_col], df[y_col], alpha=0.6, color="#A67D45", edgecolors='white', linewidth=0.5)
+            ax.set_xlabel(x_col, fontsize=12, fontweight="bold")
+            ax.set_ylabel(y_col, fontsize=12, fontweight="bold")
+            ax.set_title(f"Scatter Plot: {x_col} vs {y_col}", fontsize=14, fontweight="bold", pad=15)
+            plt.tight_layout()
+            st.pyplot(fig)
+        else:
+            st.info("ℹ️ Minimal 2 kolom numerik diperlukan untuk scatter plot.")
+    
+    elif selected_viz == "Box Plot - Distribusi per Kategori":
+        numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+        if numeric_cols:
+            selected_col = st.selectbox("Pilih kolom numerik:", numeric_cols, key="box_col")
+            
+            fig, ax = plt.subplots(figsize=(10, 5))
+            box = ax.boxplot(df[selected_col].dropna(), patch_artist=True)
+            box['boxes'][0].set_facecolor('#A67D45')
+            ax.set_ylabel(selected_col, fontsize=12, fontweight="bold")
+            ax.set_title(f"Box Plot: {selected_col}", fontsize=14, fontweight="bold", pad=15)
+            plt.tight_layout()
+            st.pyplot(fig)
+        else:
+            st.info("ℹ️ Tidak ada kolom numerik untuk ditampilkan.")
 
-    # ========================================
-    # --- TAB 4: Export Visualisasi PDF ---
-    # =====================================
-    with tab4:
-        st.markdown("### 📥 Export Visualisasi ke PDF")
-        st.info("💾 Unduh semua visualisasi dalam satu file PDF untuk dokumentasi atau presentasi.")
-
-        if st.button("📄 Generate PDF", use_container_width=False):
-            with st.spinner("⏳ Sedang membuat file PDF..."):
-                buf = generate_pdf_visualizations(df, st.session_state.get("rf_model"))
-
-            st.success("✅ File PDF berhasil dibuat!")
-            st.download_button(
-                label="📥 Unduh Visualisasi PDF",
-                data=buf,
-                file_name="visualisasi_hipertensi_indonesia.pdf", # Diubah
-                mime="application/pdf",
-                use_container_width=False,
-            )
+    # -----------------------------------------
+    # TOMBOL NAVIGASI: PREVIOUS & NEXT
+    # -----------------------------------------
+    st.markdown("<br>", unsafe_allow_html=True)
+    col_prev, col_spacer, col_next = st.columns([1, 2, 1])
+    
+    with col_prev:
+        if st.button("← Previous", use_container_width=True, key="prev_btn"):
+            st.session_state["page"] = "Analisis Data"
+            st.rerun()
+    
+    with col_next:
+        if st.button("Next →", use_container_width=True, key="next_btn"):
+            st.session_state["page"] = "Prediction"
+            st.rerun()
