@@ -51,13 +51,6 @@ def show_visualization():
     # -----------------------------------------
     # HASIL VISUALISASI
     # -----------------------------------------
-    st.markdown("""
-    <div style="background: #F0E9E1; border-radius: 12px; padding: 20px; margin-bottom: 20px; min-height: 300px;">
-        <div style="margin-bottom: 10px;">
-            <span style="color: #A67D45; font-weight: 600;">Hasil Visualisasi</span>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
     
     # Render visualisasi berdasarkan pilihan
     if selected_viz == "Distribusi Data (Histogram)":

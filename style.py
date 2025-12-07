@@ -121,6 +121,38 @@ def add_custom_css():
             margin-bottom: 2rem;
         }}
         h1 {{ color: {PRIMARY_COLOR}; font-weight: 700; margin-bottom: 1.5rem; }}
+        
+        /* Custom Button Styles untuk Preprocessing Page */
+        /* Tombol utama - semua button dengan border-radius */
+        .stButton > button {{
+            border-radius: 8px !important;
+            font-weight: 500 !important;
+            transition: all 0.3s ease !important;
+            padding: 12px 24px !important;
+        }}
+        
+        /* Primary button (Hapus Duplikat) - Olive style */
+        .stButton > button[kind="primary"] {{
+            background-color: {SECONDARY_COLOR} !important;
+            color: white !important;
+            border: none !important;
+        }}
+        .stButton > button[kind="primary"]:hover {{
+            background-color: #7a8672 !important;
+        }}
+        
+        /* Secondary/default buttons - untuk Previous (Olive) */
+        .stButton > button[kind="secondary"],
+        .stButton > button:not([kind="primary"]) {{
+            background-color: {SECONDARY_COLOR} !important;
+            color: white !important;
+            border: none !important;
+        }}
+        .stButton > button[kind="secondary"]:hover,
+        .stButton > button:not([kind="primary"]):hover {{
+            background-color: #7a8672 !important;
+        }}
+        
         </style>
         """,
         unsafe_allow_html=True,

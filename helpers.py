@@ -6,12 +6,70 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from io import BytesIO
 from matplotlib.backends.backend_pdf import PdfPages
+import joblib
 
 from sklearn.metrics import confusion_matrix 
+from sklearn.preprocessing import StandardScaler, MinMaxScaler
 
 # --- KONSTANTA TARGET ---
 # Nama kolom target (label) di dataset untuk risiko hipertensi
 TARGET_COL = "hypertension"  # Diubah dari "heart_attack"
+
+
+# --- HELPER: SAVE MODEL TO FILE ---
+def save_model_to_file(model, features):
+    """
+    Menyimpan model dan daftar fitur ke dalam buffer BytesIO untuk download.
+    Returns: BytesIO buffer containing the pickled model data.
+    """
+    model_data = {
+        'model': model,
+        'features': features
+    }
+    buf = BytesIO()
+    joblib.dump(model_data, buf)
+    buf.seek(0)
+    return buf
+
+
+# --- HELPER: LOAD MODEL FROM FILE ---
+def load_model_from_file(uploaded_file):
+    """
+    Memuat model dan daftar fitur dari file .pkl yang diupload.
+    Returns: tuple (model, features) atau (None, None) jika gagal.
+    """
+    try:
+        model_data = joblib.load(uploaded_file)
+        model = model_data.get('model')
+        features = model_data.get('features', [])
+        return model, features
+    except Exception as e:
+        st.error(f"❌ Gagal memuat model: {str(e)}")
+        return None, None
+
+
+# --- HELPER: APPLY STANDARDIZATION ---
+def apply_standardization(df, columns):
+    """
+    Menerapkan StandardScaler pada kolom-kolom numerik yang dipilih.
+    Returns: DataFrame yang sudah di-transform dan scaler object.
+    """
+    df = df.copy()
+    scaler = StandardScaler()
+    df[columns] = scaler.fit_transform(df[columns])
+    return df, scaler
+
+
+# --- HELPER: APPLY NORMALIZATION ---
+def apply_normalization(df, columns):
+    """
+    Menerapkan MinMaxScaler (0-1) pada kolom-kolom numerik yang dipilih.
+    Returns: DataFrame yang sudah di-transform dan scaler object.
+    """
+    df = df.copy()
+    scaler = MinMaxScaler()
+    df[columns] = scaler.fit_transform(df[columns])
+    return df, scaler
 
 
 # --- HELPER: CEK DATA RAW ---

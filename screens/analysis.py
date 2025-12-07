@@ -8,6 +8,7 @@ from sklearn.metrics import accuracy_score, classification_report, confusion_mat
 from helpers import (
     plot_confusion_matrix,
     plot_feature_importance,
+    save_model_to_file,
 )
 
 
@@ -80,13 +81,7 @@ def show_analysis():
     # -----------------------------------------
     # HASIL ANALISIS
     # -----------------------------------------
-    st.markdown("""
-    <div style="background: #F0E9E1; border-radius: 12px; padding: 20px; margin-bottom: 20px;">
-        <div style="margin-bottom: 10px;">
-            <span style="color: #A67D45; font-weight: 600;">Hasil Analisis</span>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+
 
     # Tombol untuk menjalankan analisis
     if selected_predictors and selected_target:
@@ -168,6 +163,23 @@ def show_analysis():
         
         with st.expander("🎯 Lihat Feature Importance"):
             plot_feature_importance(model, X_cols)
+        
+        # -----------------------------------------
+        # TOMBOL SIMPAN MODEL
+        # -----------------------------------------
+        st.markdown("---")
+        st.markdown("### 💾 Simpan Model")
+        st.info("ℹ️ Simpan model terlatih ke file `.pkl` untuk digunakan nanti di halaman Use Model.")
+        
+        model_buffer = save_model_to_file(model, X_cols)
+        st.download_button(
+            label="📥 Download Model (.pkl)",
+            data=model_buffer,
+            file_name="tensicare_model.pkl",
+            mime="application/octet-stream",
+            use_container_width=True,
+            key="download_model_btn"
+        )
 
     # -----------------------------------------
     # TOMBOL NAVIGASI: PREVIOUS & NEXT

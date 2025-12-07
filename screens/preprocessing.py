@@ -1,11 +1,12 @@
 import streamlit as st
 import pandas as pd
-from helpers import preprocess_data
+import numpy as np
+from helpers import preprocess_data, apply_standardization, apply_normalization
 
 
 def show_preprocessing():
-    # Judul utama halaman preprocessing
-    st.markdown("<h1 style='text-align: center; color: #A67D45;'>Preprocessing Data</h1>", unsafe_allow_html=True)
+    # Judul utama halaman preprocessing - sesuai gambar
+    st.markdown("<h1 style='text-align: center; color: #A67D45; font-weight: 600; margin-bottom: 30px;'>Preprocessing Data</h1>", unsafe_allow_html=True)
 
     # Pastikan dataset mentah sudah di-upload
     if st.session_state.get("raw_df") is None:
@@ -16,22 +17,24 @@ def show_preprocessing():
         return
     
     df_raw = st.session_state["raw_df"]
+    duplicates_count = df_raw.duplicated().sum()
+    null_count = df_raw.isna().sum().sum()
 
     # -----------------------------------------
-    # INFORMASI DATASET - Jumlah Baris & Kolom
+    # CARD 1: Jumlah Baris & Jumlah Kolom (side by side)
     # -----------------------------------------
     st.markdown("""
-    <div style="background: #F0E9E1; border-radius: 12px; padding: 20px; margin-bottom: 20px;">
-        <div style="display: flex; justify-content: space-between; gap: 20px;">
+    <div style="background: #F0E9E1; border-radius: 12px; padding: 25px 30px; margin-bottom: 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 40px;">
             <div style="flex: 1; display: flex; align-items: center; gap: 15px;">
-                <span style="color: #A67D45; font-weight: 600;">Jumlah Baris:</span>
-                <div style="background: #E8E0D5; border-radius: 8px; padding: 10px 30px; flex: 1; text-align: center; font-weight: 600; color: #555;">
+                <span style="color: #A67D45; font-weight: 600; white-space: nowrap;">Jumlah Baris:</span>
+                <div style="background: #E8E0D5; border-radius: 8px; padding: 12px 20px; flex: 1; text-align: center; font-weight: 500; color: #666;">
                     """ + f"{df_raw.shape[0]:,}" + """
                 </div>
             </div>
             <div style="flex: 1; display: flex; align-items: center; gap: 15px;">
-                <span style="color: #A67D45; font-weight: 600;">Jumlah Kolom:</span>
-                <div style="background: #E8E0D5; border-radius: 8px; padding: 10px 30px; flex: 1; text-align: center; font-weight: 600; color: #555;">
+                <span style="color: #A67D45; font-weight: 600; white-space: nowrap;">Jumlah Kolom:</span>
+                <div style="background: #E8E0D5; border-radius: 8px; padding: 12px 20px; flex: 1; text-align: center; font-weight: 500; color: #666;">
                     """ + f"{df_raw.shape[1]:,}" + """
                 </div>
             </div>
@@ -40,51 +43,85 @@ def show_preprocessing():
     """, unsafe_allow_html=True)
 
     # -----------------------------------------
-    # JUMLAH BARIS DUPLIKAT
+    # CARD 2: Jumlah Baris Duplikat
     # -----------------------------------------
-    duplicates_count = df_raw.duplicated().sum()
     st.markdown("""
-    <div style="background: #F0E9E1; border-radius: 12px; padding: 20px; margin-bottom: 20px;">
-        <div style="text-align: center; margin-bottom: 10px;">
+    <div style="background: #F0E9E1; border-radius: 12px; padding: 25px 30px; margin-bottom: 20px;">
+        <div style="text-align: center; margin-bottom: 12px;">
             <span style="color: #A67D45; font-weight: 600;">Jumlah Baris Duplikat:</span>
         </div>
-        <div style="background: #E8E0D5; border-radius: 8px; padding: 12px; text-align: center; font-weight: 600; color: #555;">
+        <div style="background: #E8E0D5; border-radius: 8px; padding: 12px 20px; text-align: center; font-weight: 500; color: #666;">
             """ + f"{duplicates_count:,}" + """
         </div>
     </div>
     """, unsafe_allow_html=True)
 
     # -----------------------------------------
-    # JUMLAH TOTAL NILAI NULL
+    # CARD 3: Jumlah Total Nilai Null
     # -----------------------------------------
-    null_count = df_raw.isna().sum().sum()
     st.markdown("""
-    <div style="background: #F0E9E1; border-radius: 12px; padding: 20px; margin-bottom: 20px;">
-        <div style="text-align: center; margin-bottom: 10px;">
+    <div style="background: #F0E9E1; border-radius: 12px; padding: 25px 30px; margin-bottom: 25px;">
+        <div style="text-align: center; margin-bottom: 12px;">
             <span style="color: #A67D45; font-weight: 600;">Jumlah Total Nilai Null:</span>
         </div>
-        <div style="background: #E8E0D5; border-radius: 8px; padding: 12px; text-align: center; font-weight: 600; color: #555;">
+        <div style="background: #E8E0D5; border-radius: 8px; padding: 12px 20px; text-align: center; font-weight: 500; color: #666;">
             """ + f"{null_count:,}" + """
         </div>
     </div>
     """, unsafe_allow_html=True)
 
     # -----------------------------------------
-    # TOMBOL HAPUS DUPLIKAT DAN NILAI NULL
+    # OPSI TRANSFORMASI DATA (dalam expander agar tidak mengganggu layout utama)
     # -----------------------------------------
-    col_btn = st.columns([1, 2, 1])
-    with col_btn[1]:
-        if st.button("🧹 Hapus Duplikat dan Nilai Null", use_container_width=True, key="run_preprocess"):
-            with st.spinner("⏳ Sedang memproses data..."):
-                # Panggil fungsi preprocess_data dari helpers (tanpa kolom target spesifik)
-                clean_df, info = preprocess_data(df_raw)
-                
-                # Simpan hasil preprocessing ke session_state
-                st.session_state["clean_df"] = clean_df
-                st.session_state["preprocess_info"] = info
+    with st.expander("⚙️ Opsi Transformasi Data (Opsional)", expanded=False):
+        transform_option = st.radio(
+            "Pilih metode transformasi:",
+            options=["Tidak ada transformasi", "Standarisasi (StandardScaler)", "Normalisasi (MinMaxScaler)"],
+            index=0,
+            key="transform_option",
+            horizontal=True
+        )
+        st.caption("ℹ️ **Standarisasi**: Mengubah data ke skala dengan mean=0 dan std=1. **Normalisasi**: Mengubah data ke skala 0-1.")
+    
+    # Default jika tidak dibuka expander
+    if "transform_option" not in st.session_state:
+        transform_option = "Tidak ada transformasi"
+    else:
+        transform_option = st.session_state.get("transform_option", "Tidak ada transformasi")
+
+    # -----------------------------------------
+    # TOMBOL HAPUS DUPLIKAT DAN NILAI NULL - sesuai gambar (full width, warna olive)
+    # -----------------------------------------
+    button_clicked = st.button("Hapus Duplikat dan Nilai Null", use_container_width=True, key="run_preprocess", type="primary")
+    
+    if button_clicked:
+        with st.spinner("⏳ Sedang memproses data..."):
+            # Panggil fungsi preprocess_data dari helpers
+            clean_df, info = preprocess_data(df_raw)
             
-            st.success("✅ Preprocessing selesai!")
-            st.rerun()
+            # Terapkan transformasi jika dipilih
+            transform_applied = "Tidak ada"
+            if transform_option == "Standarisasi (StandardScaler)":
+                numeric_cols = clean_df.select_dtypes(include=[np.number]).columns.tolist()
+                if numeric_cols:
+                    clean_df, scaler = apply_standardization(clean_df, numeric_cols)
+                    st.session_state["scaler"] = scaler
+                    transform_applied = "StandardScaler"
+            elif transform_option == "Normalisasi (MinMaxScaler)":
+                numeric_cols = clean_df.select_dtypes(include=[np.number]).columns.tolist()
+                if numeric_cols:
+                    clean_df, scaler = apply_normalization(clean_df, numeric_cols)
+                    st.session_state["scaler"] = scaler
+                    transform_applied = "MinMaxScaler"
+            
+            info["transform_applied"] = transform_applied
+            
+            # Simpan hasil preprocessing ke session_state
+            st.session_state["clean_df"] = clean_df
+            st.session_state["preprocess_info"] = info
+        
+        st.success("✅ Preprocessing selesai!")
+        st.rerun()
 
     # -----------------------------------------
     # HASIL PREPROCESSING (jika sudah dijalankan)
@@ -97,6 +134,7 @@ def show_preprocessing():
         st.markdown("<h3 style='color: #A67D45;'>📈 Hasil Preprocessing</h3>", unsafe_allow_html=True)
         
         # Tampilkan ringkasan hasil
+        transform_applied = info.get('transform_applied', 'Tidak ada')
         st.markdown("""
         <div style="background: #d4edda; border-radius: 12px; padding: 20px; margin-bottom: 20px; border-left: 4px solid #28a745;">
             <div style="display: flex; justify-content: space-around; flex-wrap: wrap; gap: 15px;">
@@ -112,6 +150,10 @@ def show_preprocessing():
                     <div style="font-weight: 600; color: #155724;">Missing Value Setelah</div>
                     <div style="font-size: 1.5rem; color: #155724;">""" + f"{info['missing_total_after']:,}" + """</div>
                 </div>
+                <div style="text-align: center;">
+                    <div style="font-weight: 600; color: #155724;">Transformasi</div>
+                    <div style="font-size: 1.5rem; color: #155724;">""" + transform_applied + """</div>
+                </div>
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -121,9 +163,10 @@ def show_preprocessing():
             st.dataframe(clean_df.head(10), use_container_width=True)
 
     # -----------------------------------------
-    # TOMBOL NAVIGASI: PREVIOUS & NEXT
+    # TOMBOL NAVIGASI: PREVIOUS & NEXT - sesuai gambar
     # -----------------------------------------
     st.markdown("<br>", unsafe_allow_html=True)
+    
     col_prev, col_spacer, col_next = st.columns([1, 2, 1])
     
     with col_prev:
@@ -132,9 +175,9 @@ def show_preprocessing():
             st.rerun()
     
     with col_next:
-        # Tombol Next hanya aktif jika preprocessing sudah dilakukan
+        # Tombol Next dengan warna coklat (type=primary akan menggunakan warna primer)
         if st.session_state.get("clean_df") is not None:
-            if st.button("Next →", use_container_width=True, key="next_btn"):
+            if st.button("Next →", use_container_width=True, key="next_btn", type="primary"):
                 st.session_state["page"] = "Analisis Data"
                 st.rerun()
         else:
