@@ -82,10 +82,50 @@ def show_analysis():
     # HASIL ANALISIS
     # -----------------------------------------
 
+    # -----------------------------------------
+    # PENGATURAN MODEL (OPSIONAL)
+    # -----------------------------------------
+    with st.expander("⚙️ Pengaturan Model (Opsional)", expanded=False):
+        col_trees, col_test = st.columns(2)
+        
+        with col_trees:
+            n_estimators = st.slider(
+                "🌲 Jumlah Trees (n_estimators)",
+                min_value=50,
+                max_value=500,
+                value=200,
+                step=50,
+                help="Jumlah pohon keputusan dalam Random Forest. Semakin banyak, semakin akurat tapi lebih lambat."
+            )
+        
+        with col_test:
+            test_size = st.slider(
+                "📊 Proporsi Data Testing",
+                min_value=0.10,
+                max_value=0.40,
+                value=0.20,
+                step=0.05,
+                help="Proporsi data yang digunakan untuk testing. Contoh: 0.20 berarti 20% untuk test, 80% untuk training."
+            )
 
     # Tombol untuk menjalankan analisis
     if selected_predictors and selected_target:
-        if st.button("🚀 Jalankan Analisis", use_container_width=True, key="run_analysis"):
+        # Custom CSS for green "Jalankan Analisis" button
+        st.markdown("""
+            <style>
+            /* Green button for analysis page - same as sidebar color */
+            div[data-testid="stButton"] button[kind="primary"] {
+                background-color: #899581 !important;
+                border-color: #899581 !important;
+            }
+            div[data-testid="stButton"] button[kind="primary"]:hover {
+                background-color: #7a8672 !important;
+                border-color: #7a8672 !important;
+            }
+            </style>
+        """, unsafe_allow_html=True)
+        
+        if st.button("🕵🏻 Jalankan Analisis", use_container_width=True, key="run_analysis", type="primary"):
             with st.spinner("⏳ Sedang melatih model Random Forest..."):
                 try:
                     X = df_clean[selected_predictors]
@@ -95,11 +135,11 @@ def show_analysis():
                     st.session_state["features"] = selected_predictors
                     
                     X_train, X_test, y_train, y_test = train_test_split(
-                        X, y, test_size=0.2, random_state=42
+                        X, y, test_size=test_size, random_state=42
                     )
                     
                     model = RandomForestClassifier(
-                        n_estimators=200,
+                        n_estimators=n_estimators,
                         random_state=42,
                         class_weight="balanced",
                         n_jobs=-1,
@@ -153,8 +193,8 @@ def show_analysis():
         
         # Expander untuk detail
         with st.expander("📊 Lihat Confusion Matrix"):
-            unique_labels = df_clean[selected_target].unique()
-            labels = [f"Class {i}" for i in sorted(unique_labels)]
+            # Label untuk confusion matrix: 0 = Hipertensi, 1 = Tidak Hipertensi
+            labels = ["Hipertensi", "Tidak Hipertensi"]
             plot_confusion_matrix(cm, labels=labels)
         
         with st.expander("📈 Lihat Classification Report"):

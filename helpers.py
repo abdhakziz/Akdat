@@ -100,17 +100,49 @@ def require_model():
 
 
 # --- HELPER: PREPROCESSING DATA ---
+# Daftar kolom yang tidak relevan untuk prediksi hipertensi
+IRRELEVANT_COLUMNS = [
+    # Identifiers
+    'id', 'patient_id', 'record_id', 'index', 'unnamed', 'unnamed: 0',
+    # Location/Geographic (tidak relevan untuk prediksi medis)
+    'country', 'region', 'city', 'state', 'zip', 'zipcode', 'address', 'location',
+    # Personal identifiers
+    'name', 'first_name', 'last_name', 'email', 'phone', 'telephone',
+    # Dates (bisa diproses terpisah jika perlu)
+    'date', 'timestamp', 'created_at', 'updated_at', 'record_date',
+    # Education & Employment (tidak relevan untuk prediksi hipertensi)
+    'education', 'education_level', 'employment', 'employment_status', 'occupation', 'income', 'job',
+]
+
 def preprocess_data(df: pd.DataFrame, target_col: str = None):
     """
     Preprocessing data secara fleksibel - otomatis menggunakan semua kolom numerik
-    dari dataset yang diupload.
+    dari dataset yang diupload, dan menghapus kolom yang tidak relevan untuk prediksi.
     """
     df = df.copy()  # buat salinan agar tidak mengubah dataframe asli
 
     # simpan informasi awal sebelum dibersihkan
     rows_before = df.shape[0]          # jumlah baris sebelum preprocessing
+    cols_before = df.shape[1]          # jumlah kolom sebelum preprocessing
     dup_count = df.duplicated().sum()  # jumlah baris duplikat
     missing_before = df.isna().sum()   # jumlah missing per kolom
+
+    # Hapus kolom yang tidak relevan untuk prediksi hipertensi
+    cols_to_drop = []
+    for col in df.columns:
+        col_lower = col.lower().strip()
+        # Cek apakah nama kolom ada di daftar irrelevant
+        if col_lower in IRRELEVANT_COLUMNS:
+            cols_to_drop.append(col)
+        # Cek juga jika nama kolom mengandung kata-kata tertentu
+        elif any(irr in col_lower for irr in ['unnamed', 'index', 'id']):
+            # Kecuali kolom yang mungkin relevan seperti 'patient_id' yang sudah di-check
+            if col_lower not in ['diabetes', 'hypertension']:  # pastikan bukan false positive
+                cols_to_drop.append(col)
+    
+    # Drop kolom yang tidak relevan
+    if cols_to_drop:
+        df = df.drop(columns=cols_to_drop, errors='ignore')
 
     # hapus baris duplikat
     df = df.drop_duplicates()
@@ -134,7 +166,10 @@ def preprocess_data(df: pd.DataFrame, target_col: str = None):
     info = {
         "rows_before": int(rows_before),                 # baris sebelum preprocessing
         "rows_after": int(df.shape[0]),                  # baris setelah preprocessing
-        "cols": int(df.shape[1]),                        # jumlah kolom aktif
+        "cols_before": int(cols_before),                 # kolom sebelum preprocessing
+        "cols_after": int(df.shape[1]),                  # kolom setelah preprocessing
+        "cols_dropped": cols_to_drop,                    # nama kolom yang dihapus
+        "cols_dropped_count": len(cols_to_drop),         # jumlah kolom yang dihapus
         "duplicates_removed": int(dup_count),            # jumlah duplikat yang dihapus
         "missing_values_before": missing_before.to_dict(),  # missing value per kolom (sebelum)
         "missing_total_after": int(df.isna().sum().sum()),  # total missing setelah preprocessing (harusnya 0)

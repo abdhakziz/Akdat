@@ -6,7 +6,7 @@ from helpers import preprocess_data, apply_standardization, apply_normalization
 
 def show_preprocessing():
     # Judul utama halaman preprocessing - sesuai gambar
-    st.markdown("<h1 style='text-align: center; color: #A67D45; font-weight: 600; margin-bottom: 30px;'>Preprocessing Data</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align: center; color: #A67D45;'>Preprocessing Data</h1>", unsafe_allow_html=True)
 
     # Pastikan dataset mentah sudah di-upload
     if st.session_state.get("raw_df") is None:
@@ -90,8 +90,21 @@ def show_preprocessing():
         transform_option = st.session_state.get("transform_option", "Tidak ada transformasi")
 
     # -----------------------------------------
-    # TOMBOL HAPUS DUPLIKAT DAN NILAI NULL - sesuai gambar (full width, warna olive)
+    # TOMBOL HAPUS DUPLIKAT DAN NILAI NULL - warna hijau sidebar
     # -----------------------------------------
+    # Custom CSS for green button
+    st.markdown("""
+        <style>
+        /* Green button for preprocessing page */
+        button[kind="primary"] {
+            background-color: #899581 !important;
+        }
+        button[kind="primary"]:hover {
+            background-color: #7a8672 !important;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+    
     button_clicked = st.button("Hapus Duplikat dan Nilai Null", use_container_width=True, key="run_preprocess", type="primary")
     
     if button_clicked:
@@ -131,10 +144,15 @@ def show_preprocessing():
         info = st.session_state["preprocess_info"]
         
         st.markdown("---")
-        st.markdown("<h3 style='color: #A67D45;'>📈 Hasil Preprocessing</h3>", unsafe_allow_html=True)
+        st.markdown("<h3 style='color: #A67D45;'> Hasil Preprocessing</h3>", unsafe_allow_html=True)
         
         # Tampilkan ringkasan hasil
         transform_applied = info.get('transform_applied', 'Tidak ada')
+        cols_before = info.get('cols_before', info.get('cols', 0))
+        cols_after = info.get('cols_after', info.get('cols', 0))
+        cols_dropped = info.get('cols_dropped', [])
+        cols_dropped_count = info.get('cols_dropped_count', 0)
+        
         st.markdown("""
         <div style="background: #d4edda; border-radius: 12px; padding: 20px; margin-bottom: 20px; border-left: 4px solid #28a745;">
             <div style="display: flex; justify-content: space-around; flex-wrap: wrap; gap: 15px;">
@@ -143,11 +161,15 @@ def show_preprocessing():
                     <div style="font-size: 1.5rem; color: #155724;">""" + f"{info['rows_after']:,}" + """</div>
                 </div>
                 <div style="text-align: center;">
+                    <div style="font-weight: 600; color: #155724;">Kolom Tersisa</div>
+                    <div style="font-size: 1.5rem; color: #155724;">""" + f"{cols_after:,}" + """</div>
+                </div>
+                <div style="text-align: center;">
                     <div style="font-weight: 600; color: #155724;">Duplikat Dihapus</div>
                     <div style="font-size: 1.5rem; color: #155724;">""" + f"{info['duplicates_removed']:,}" + """</div>
                 </div>
                 <div style="text-align: center;">
-                    <div style="font-weight: 600; color: #155724;">Missing Value Setelah</div>
+                    <div style="font-weight: 600; color: #155724;">Missing Value</div>
                     <div style="font-size: 1.5rem; color: #155724;">""" + f"{info['missing_total_after']:,}" + """</div>
                 </div>
                 <div style="text-align: center;">
@@ -157,6 +179,15 @@ def show_preprocessing():
             </div>
         </div>
         """, unsafe_allow_html=True)
+        
+        # Tampilkan kolom yang dihapus jika ada
+        if cols_dropped_count > 0:
+            st.markdown("""
+            <div style="background: #fff3cd; border-radius: 12px; padding: 15px; margin-bottom: 20px; border-left: 4px solid #ffc107;">
+                <div style="font-weight: 600; color: #856404; margin-bottom: 8px;">⚠️ Kolom Tidak Relevan yang Dihapus (""" + str(cols_dropped_count) + """ kolom):</div>
+                <div style="color: #856404; font-size: 0.95rem;">""" + ", ".join(cols_dropped) + """</div>
+            </div>
+            """, unsafe_allow_html=True)
         
         # Preview data hasil preprocessing
         with st.expander("🔍 Preview Data Hasil Preprocessing"):
@@ -178,7 +209,7 @@ def show_preprocessing():
         # Tombol Next dengan warna coklat (type=primary akan menggunakan warna primer)
         if st.session_state.get("clean_df") is not None:
             if st.button("Next →", use_container_width=True, key="next_btn", type="primary"):
-                st.session_state["page"] = "Analisis Data"
+                st.session_state["page"] = "Data Analysis"
                 st.rerun()
         else:
             st.button("Next →", use_container_width=True, key="next_btn_disabled", disabled=True)

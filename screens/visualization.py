@@ -60,7 +60,7 @@ def show_visualization():
             selected_col = st.selectbox("Pilih kolom untuk histogram:", numeric_cols, key="hist_col")
             
             fig, ax = plt.subplots(figsize=(10, 5))
-            sns.histplot(df[selected_col], bins=20, kde=True, ax=ax, color="#A67D45")
+            sns.histplot(df[selected_col], bins=20, kde=True, ax=ax, color="steelblue")
             ax.set_xlabel(selected_col, fontsize=12, fontweight="bold")
             ax.set_ylabel("Frekuensi", fontsize=12, fontweight="bold")
             ax.set_title(f"Distribusi {selected_col}", fontsize=14, fontweight="bold", pad=15)
@@ -76,7 +76,7 @@ def show_visualization():
         sns.heatmap(
             corr,
             mask=mask,
-            cmap="YlOrBr",
+            cmap="coolwarm",
             ax=ax,
             annot=True if len(corr) <= 10 else False,
             fmt=".2f" if len(corr) <= 10 else None,
@@ -91,21 +91,66 @@ def show_visualization():
     elif selected_viz == "Bar Chart - Perbandingan Kolom":
         selected_col = st.selectbox("Pilih kolom untuk bar chart:", columns_list, key="bar_col")
         
-        fig, ax = plt.subplots(figsize=(10, 5))
-        value_counts = df[selected_col].value_counts()
-        colors = plt.cm.YlOrBr(np.linspace(0.4, 0.8, len(value_counts)))
-        bars = ax.bar(value_counts.index.astype(str), value_counts.values, color=colors)
+        fig, ax = plt.subplots(figsize=(10, 6))
+        value_counts = df[selected_col].value_counts().sort_index()
+        
+        # Cek apakah kolom adalah binary (0/1)
+        unique_vals = set(value_counts.index)
+        is_binary = unique_vals.issubset({0, 1, 0.0, 1.0}) and len(unique_vals) == 2
+        
+        # Daftar kolom khusus
+        gender_cols = ['gender', 'sex', 'male', 'female', 'jenis_kelamin', 'is_male', 'is_female']
+        hypertension_cols = ['hypertension', 'hipertensi', 'target', 'diabetes', 'smoking', 'stroke', 'heart_disease']
+        
+        is_gender_col = selected_col.lower() in gender_cols and is_binary
+        is_hypertension_col = selected_col.lower() in hypertension_cols or (is_binary and selected_col.lower() not in gender_cols)
+        
+        if is_gender_col:
+            # Map 0/1 ke Perempuan/Laki-laki
+            label_map = {0: 'Perempuan', 1: 'Laki-laki', 0.0: 'Perempuan', 1.0: 'Laki-laki'}
+            labels = [label_map.get(x, str(x)) for x in value_counts.index]
+            # Warna Pink untuk Perempuan, Biru untuk Laki-laki
+            colors = ['#FF69B4', '#4169E1']
+            title = f"Distribusi Jenis Kelamin"
+            
+            # Buat bar dengan label untuk legend
+            for i, (label, val, color) in enumerate(zip(labels, value_counts.values, colors)):
+                bar = ax.bar(label, val, color=color, edgecolor='white', linewidth=2, label=label)
+                ax.text(i, val, f'{int(val):,}', ha='center', va='bottom', fontsize=14, fontweight='bold')
+            
+            ax.legend(title="Keterangan", loc='upper right', fontsize=11, title_fontsize=12)
+            
+        elif is_hypertension_col and is_binary:
+            # Map 0/1 ke Tidak/Ya
+            label_map = {0: 'Tidak', 1: 'Ya', 0.0: 'Tidak', 1.0: 'Ya'}
+            labels = [label_map.get(x, str(x)) for x in value_counts.index]
+            # Warna Biru tua untuk Tidak, Merah untuk Ya
+            colors = ['#3498db', '#e74c3c']
+            title = f"Distribusi Hipertensi (Ya/Tidak)" if selected_col.lower() in ['hypertension', 'hipertensi'] else f"Distribusi {selected_col}"
+            
+            # Buat bar dengan label untuk legend
+            for i, (label, val, color) in enumerate(zip(labels, value_counts.values, colors)):
+                bar = ax.bar(label, val, color=color, edgecolor='white', linewidth=2, label=label)
+                ax.text(i, val, f'{int(val):,}', ha='center', va='bottom', fontsize=14, fontweight='bold')
+            
+            ax.legend(title="Keterangan", loc='upper right', fontsize=11, title_fontsize=12)
+        else:
+            labels = [str(x) for x in value_counts.index]
+            colors = plt.cm.Blues(np.linspace(0.4, 0.8, len(value_counts)))
+            bars = ax.bar(labels, value_counts.values, color=colors, edgecolor='white', linewidth=1)
+            title = f"Distribusi {selected_col}"
+            
+            # Tambahkan jumlah di atas bar
+            for bar in bars:
+                height = bar.get_height()
+                ax.text(bar.get_x() + bar.get_width()/2., height, f'{int(height):,}',
+                        ha='center', va='bottom', fontsize=12, fontweight='bold')
+        
         ax.set_xlabel(selected_col, fontsize=12, fontweight="bold")
         ax.set_ylabel("Jumlah", fontsize=12, fontweight="bold")
-        ax.set_title(f"Distribusi {selected_col}", fontsize=14, fontweight="bold", pad=15)
+        ax.set_title(title, fontsize=14, fontweight="bold", pad=15)
         
-        # Tambahkan label di atas bar
-        for bar in bars:
-            height = bar.get_height()
-            ax.text(bar.get_x() + bar.get_width()/2., height, f'{int(height)}',
-                    ha='center', va='bottom', fontsize=10, fontweight='bold')
-        
-        plt.xticks(rotation=45, ha='right')
+        plt.xticks(rotation=0)
         plt.tight_layout()
         st.pyplot(fig)
     
@@ -119,7 +164,29 @@ def show_visualization():
                 y_col = st.selectbox("Pilih variabel Y:", numeric_cols, index=1 if len(numeric_cols) > 1 else 0, key="scatter_y")
             
             fig, ax = plt.subplots(figsize=(10, 6))
-            ax.scatter(df[x_col], df[y_col], alpha=0.6, color="#A67D45", edgecolors='white', linewidth=0.5)
+            
+            # Cek apakah Y column adalah gender-related (0/1 binary)
+            y_data = df[y_col]
+            y_unique = y_data.dropna().unique()
+            gender_cols = ['gender', 'sex', 'male', 'female', 'jenis_kelamin', 'is_male', 'is_female']
+            
+            is_gender_col = y_col.lower() in gender_cols and len(y_unique) == 2 and set(y_unique).issubset({0, 1, 0.0, 1.0})
+            
+            if is_gender_col:
+                # Map 0/1 ke Perempuan/Laki-laki
+                y_mapped = y_data.map({0: 'Perempuan', 1: 'Laki-laki', 0.0: 'Perempuan', 1.0: 'Laki-laki'})
+                
+                # Buat scatter plot dengan categorical y-axis
+                for i, (label, color) in enumerate([('Perempuan', '#FF69B4'), ('Laki-laki', '#4169E1')]):
+                    mask = y_mapped == label
+                    ax.scatter(df[x_col][mask], [i] * mask.sum(), alpha=0.6, color=color, edgecolors='white', linewidth=0.5, label=label)
+                
+                ax.set_yticks([0, 1])
+                ax.set_yticklabels(['Perempuan', 'Laki-laki'])
+                ax.legend()
+            else:
+                ax.scatter(df[x_col], df[y_col], alpha=0.6, color="steelblue", edgecolors='white', linewidth=0.5)
+            
             ax.set_xlabel(x_col, fontsize=12, fontweight="bold")
             ax.set_ylabel(y_col, fontsize=12, fontweight="bold")
             ax.set_title(f"Scatter Plot: {x_col} vs {y_col}", fontsize=14, fontweight="bold", pad=15)
@@ -135,7 +202,7 @@ def show_visualization():
             
             fig, ax = plt.subplots(figsize=(10, 5))
             box = ax.boxplot(df[selected_col].dropna(), patch_artist=True)
-            box['boxes'][0].set_facecolor('#A67D45')
+            box['boxes'][0].set_facecolor('steelblue')
             ax.set_ylabel(selected_col, fontsize=12, fontweight="bold")
             ax.set_title(f"Box Plot: {selected_col}", fontsize=14, fontweight="bold", pad=15)
             plt.tight_layout()
@@ -151,7 +218,7 @@ def show_visualization():
     
     with col_prev:
         if st.button("← Previous", use_container_width=True, key="prev_btn"):
-            st.session_state["page"] = "Analisis Data"
+            st.session_state["page"] = "Data Analysis"
             st.rerun()
     
     with col_next:

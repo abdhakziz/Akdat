@@ -22,6 +22,10 @@ FIELD_LABELS = {
     "age": "Usia (Tahun)",
     "umur": "Usia (Tahun)",
     
+    # Country/Location
+    "country": "Negara",
+    "region": "Wilayah",
+    
     # Smoking fields
     "smoking": "Status Merokok",
     "smoking_status": "Status Merokok",
@@ -35,10 +39,12 @@ FIELD_LABELS = {
     "sysBP": "Tekanan Darah Sistolik (mmHg)",
     "sys_bp": "Tekanan Darah Sistolik (mmHg)",
     "systolic": "Tekanan Darah Sistolik (mmHg)",
+    "systolic_bp": "Tekanan Darah Sistolik (mmHg)",
     "blood_pressure_systolic": "Tekanan Darah Sistolik (mmHg)",
     "diaBP": "Tekanan Darah Diastolik (mmHg)",
     "dia_bp": "Tekanan Darah Diastolik (mmHg)",
     "diastolic": "Tekanan Darah Diastolik (mmHg)",
+    "diastolic_bp": "Tekanan Darah Diastolik (mmHg)",
     "blood_pressure_diastolic": "Tekanan Darah Diastolik (mmHg)",
     
     # Medical history fields
@@ -55,6 +61,7 @@ FIELD_LABELS = {
     "prevalent_hyp": "Riwayat Hipertensi",
     "previous_heart_disease": "Riwayat Penyakit Jantung",
     "heart_disease": "Riwayat Penyakit Jantung",
+    "family_history": "Riwayat Keluarga",
     
     # Physical measurements
     "BMI": "Indeks Massa Tubuh (BMI)",
@@ -72,6 +79,8 @@ FIELD_LABELS = {
     "cholesterol_level": "Tingkat Kolesterol",
     "cholesterol_hdl": "Kolesterol HDL (mg/dL)",
     "cholesterol_ldl": "Kolesterol LDL (mg/dL)",
+    "hdl": "Kolesterol HDL (mg/dL)",
+    "ldl": "Kolesterol LDL (mg/dL)",
     "triglycerides": "Trigliserida (mg/dL)",
     "glucose": "Kadar Glukosa (mg/dL)",
     "fasting_blood_sugar": "Gula Darah Puasa (mg/dL)",
@@ -80,22 +89,39 @@ FIELD_LABELS = {
     "heartRate": "Detak Jantung (bpm)",
     "heart_rate": "Detak Jantung (bpm)",
     
-    # Activity
+    # Activity & Lifestyle
     "physical_activity": "Tingkat Aktivitas Fisik",
+    "physical_activity_level": "Tingkat Aktivitas Fisik",
     "activity": "Tingkat Aktivitas Fisik",
     "exercise": "Frekuensi Olahraga",
+    "alcohol_intake": "Konsumsi Alkohol",
+    "alcohol": "Konsumsi Alkohol",
+    "salt_intake": "Konsumsi Garam",
+    "sleep_duration": "Durasi Tidur (jam)",
+    "sleep": "Durasi Tidur (jam)",
+    "stress_level": "Tingkat Stres",
+    "stress": "Tingkat Stres",
     
-    # Education
+    # Education & Employment
     "education": "Tingkat Pendidikan",
+    "education_level": "Tingkat Pendidikan",
+    "employment_status": "Status Pekerjaan",
+    "employment": "Status Pekerjaan",
+    "occupation": "Pekerjaan",
+    "income": "Pendapatan",
 }
 
 # Mapping untuk field binary (0/1) ke opsi yang lebih ramah
 BINARY_OPTIONS = {
-    # Gender fields - 1 biasanya = male
+    # Gender fields - 1 biasanya = male, 0 = female
     "male": {0: "Perempuan", 1: "Laki-laki"},
     "is_male": {0: "Perempuan", 1: "Laki-laki"},
     "sex": {0: "Perempuan", 1: "Laki-laki"},
+    "gender": {0: "Perempuan", 1: "Laki-laki"},
+    "jenis_kelamin": {0: "Perempuan", 1: "Laki-laki"},
+    "kelamin": {0: "Perempuan", 1: "Laki-laki"},
     "female": {0: "Laki-laki", 1: "Perempuan"},
+    "is_female": {0: "Laki-laki", 1: "Perempuan"},
     
     # Yes/No fields
     "smoking": {0: "Tidak Merokok", 1: "Merokok"},
@@ -127,10 +153,24 @@ CATEGORICAL_OPTIONS = {
         2: "Perokok Aktif"
     },
     "physical_activity": {
-        0: "Tidak Aktif",
-        1: "Sedikit Aktif",
-        2: "Cukup Aktif",
-        3: "Sangat Aktif"
+        0: "Rendah",
+        1: "Sedang",
+        2: "Tinggi"
+    },
+    "physical_activity_level": {
+        0: "Rendah",
+        1: "Sedang",
+        2: "Tinggi"
+    },
+    "activity_level": {
+        0: "Rendah",
+        1: "Sedang",
+        2: "Tinggi"
+    },
+    "aktivitas_fisik": {
+        0: "Rendah",
+        1: "Sedang",
+        2: "Tinggi"
     },
     "cholesterol_level": {
         0: "Normal",
@@ -191,7 +231,39 @@ def show_prediction():
     # -----------------------------------------
     # TABS: INPUT MANUAL vs BATCH PREDICTION
     # -----------------------------------------
-    tab1, tab2 = st.tabs(["📝 Input Manual", "📂 Batch Prediction"])
+    # CSS untuk memperbesar dan membuat bold tulisan tab
+    st.markdown("""
+        <style>
+        /* Style untuk tab labels */
+        .stTabs [data-baseweb="tab-list"] button [data-testid="stMarkdownContainer"] p {
+            font-size: 1.2rem !important;
+            font-weight: 700 !important;
+            color: #555 !important;
+        }
+        .stTabs [data-baseweb="tab-list"] button {
+            font-size: 1.2rem !important;
+            font-weight: 700 !important;
+            color: #555 !important;
+        }
+        /* Tab yang aktif */
+        .stTabs [data-baseweb="tab-list"] button[aria-selected="true"] {
+            font-weight: 700 !important;
+            color: #A67D45 !important;
+        }
+        .stTabs [data-baseweb="tab-list"] button[aria-selected="true"] p {
+            color: #A67D45 !important;
+        }
+        /* Garis bawah tab aktif */
+        .stTabs [data-baseweb="tab-highlight"] {
+            background-color: #A67D45 !important;
+        }
+        .stTabs [data-baseweb="tab-border"] {
+            background-color: #e0e0e0 !important;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+    
+    tab1, tab2 = st.tabs([" Input Manual", " Batch Prediction"])
     
     # ===========================================
     # TAB 1: INPUT MANUAL (existing functionality)
@@ -206,15 +278,20 @@ def show_prediction():
         show_batch_prediction()
 
     # -----------------------------------------
-    # TOMBOL NAVIGASI: PREVIOUS
+    # TOMBOL NAVIGASI: PREVIOUS (hanya jika ada model aktif)
     # -----------------------------------------
     st.markdown("<br>", unsafe_allow_html=True)
-    col_prev, col_spacer, col_next = st.columns([1, 2, 1])
     
-    with col_prev:
-        if st.button("← Previous", use_container_width=True, key="prev_btn"):
-            st.session_state["page"] = "Data Visualization"
-            st.rerun()
+    # Cek apakah ada model aktif
+    model = st.session_state.get("rf_model")
+    
+    if model is not None:
+        # Jika ada model, tampilkan tombol Previous ke Data Visualization
+        col_prev, col_spacer, col_next = st.columns([1, 2, 1])
+        with col_prev:
+            if st.button("← Previous", use_container_width=True, key="prev_btn"):
+                st.session_state["page"] = "Data Visualization"
+                st.rerun()
 
 
 def show_manual_prediction():
@@ -226,8 +303,8 @@ def show_manual_prediction():
     
     if model is None:
         st.warning("⚠️ Tidak ada model aktif. Silakan training model di halaman **Analisis Data** atau upload model `.pkl` di tab **Batch Prediction**.")
-        if st.button("← Kembali ke Analisis Data", key="back_analysis_manual"):
-            st.session_state["page"] = "Analisis Data"
+        if st.button("← Kembali ke Analisis Data"):
+            st.session_state["page"] = "Data Analysis"
             st.rerun()
         return
     
@@ -247,6 +324,27 @@ def show_manual_prediction():
             Masukkan nilai untuk setiap fitur di bawah ini. Fitur-fitur ini sesuai dengan yang digunakan saat training model.
         </p>
     </div>
+    """, unsafe_allow_html=True)
+    
+    # CSS untuk tombol Prediksi Sekarang berwarna hijau
+    st.markdown("""
+        <style>
+        /* Tombol form submit hijau */
+        .stForm [data-testid="stFormSubmitButton"] button {
+            background: linear-gradient(135deg, #899581 0%, #7a8672 100%) !important;
+            background-color: #899581 !important;
+            color: white !important;
+            border: none !important;
+            font-weight: 600 !important;
+            box-shadow: 0 4px 15px rgba(137, 149, 129, 0.3) !important;
+        }
+        .stForm [data-testid="stFormSubmitButton"] button:hover {
+            background: linear-gradient(135deg, #7a8672 0%, #6b7763 100%) !important;
+            background-color: #7a8672 !important;
+            transform: translateY(-2px) !important;
+            box-shadow: 0 6px 20px rgba(137, 149, 129, 0.4) !important;
+        }
+        </style>
     """, unsafe_allow_html=True)
 
     # Ambil data clean untuk referensi nilai min/max
@@ -367,7 +465,7 @@ def show_batch_prediction():
     st.markdown("""
     <div style="background: #F0E9E1; border-radius: 12px; padding: 20px; margin-bottom: 20px;">
         <div style="margin-bottom: 10px;">
-            <span style="color: #A67D45; font-weight: 600;">📦 Upload Model (Opsional)</span>
+            <span style="color: #A67D45; font-weight: 600;">📦 Upload Model (.pkl) - Opsional</span>
         </div>
         <p style="color: #666; font-size: 0.9rem;">
             Upload file model <code>.pkl</code> yang sudah disimpan sebelumnya. Jika sudah training model di sesi ini, Anda bisa langsung upload CSV.
@@ -408,10 +506,10 @@ def show_batch_prediction():
     st.markdown("""
     <div style="background: #F0E9E1; border-radius: 12px; padding: 20px; margin-bottom: 20px;">
         <div style="margin-bottom: 10px;">
-            <span style="color: #A67D45; font-weight: 600;">📂 Upload Data CSV</span>
+            <span style="color: #A67D45; font-weight: 600;">📂 Upload Data CSV untuk Prediksi Batch</span>
         </div>
         <p style="color: #666; font-size: 0.9rem;">
-            Upload file CSV dengan kolom yang sama seperti saat training model untuk prediksi batch.
+            Upload file CSV dengan kolom yang sama seperti saat training model untuk prediksi banyak data sekaligus.
         </p>
     </div>
     """, unsafe_allow_html=True)
@@ -485,9 +583,7 @@ def show_batch_prediction():
         st.markdown("---")
         st.markdown("### 📊 Hasil Prediksi Batch")
         
-        # -----------------------------------------
-        # STATISTIK PREDIKSI
-        # -----------------------------------------
+        # Statistik
         col1, col2, col3 = st.columns(3)
         with col1:
             st.markdown("""
@@ -515,12 +611,9 @@ def show_batch_prediction():
         
         st.markdown("<br>", unsafe_allow_html=True)
         
-        # -----------------------------------------
-        # TABEL HASIL PREDIKSI
-        # -----------------------------------------
+        # Tabel hasil
         st.markdown("#### 📋 Tabel Hasil Prediksi")
         
-        # Highlight rows based on prediction
         def highlight_risk(row):
             if row['Prediksi'] == 1:
                 return ['background-color: #f8d7da'] * len(row)
@@ -533,12 +626,8 @@ def show_batch_prediction():
             height=400
         )
         
-        # -----------------------------------------
-        # DOWNLOAD HASIL CSV
-        # -----------------------------------------
+        # Download hasil
         st.markdown("#### 📥 Download Hasil")
-        
-        # Convert to CSV
         csv_buffer = df_result.to_csv(index=False).encode('utf-8')
         
         st.download_button(
@@ -550,7 +639,7 @@ def show_batch_prediction():
             key="download_batch_result"
         )
         
-        # Tombol reset hasil
+        # Tombol reset
         if st.button("🔄 Reset Hasil", key="reset_batch"):
             st.session_state["batch_result"] = None
             st.session_state["batch_stats"] = None

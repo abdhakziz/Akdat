@@ -1,117 +1,93 @@
-# pages/about.py
+# screens/about.py
 import streamlit as st
+import base64
+from pathlib import Path
+
+
+def get_image_base64(image_path):
+    """Convert image to base64 string for embedding in HTML."""
+    try:
+        with open(image_path, "rb") as img_file:
+            return base64.b64encode(img_file.read()).decode()
+    except FileNotFoundError:
+        return None
 
 
 def show_about():
-    # Judul utama halaman "About"
-    st.title("ℹ️ Tentang Aplikasi")
-
-    # Card deskripsi umum aplikasi
+    """Halaman About Us dengan desain modern: Tim Pengembang dalam 3 kartu."""
+    
+    # --- HEADER ---
     st.markdown(
         """
-        <div class="welcome-card">
-            <h3>📱 Sistem Prediksi Risiko Hipertensi di Indonesia</h3> # Diubah
-            <p style="line-height: 1.8; color: #555;">
-                Aplikasi ini dikembangkan sebagai tugas besar mata kuliah <strong>Akuisisi Data</strong> 
-                di Program Studi Sistem Informasi, Fakultas Teknologi Informasi, Universitas Andalas.
-            </p>
-            <p style="line-height: 1.8; color: #555;">
-                Memanfaatkan algoritma <strong>Random Forest Classifier</strong> untuk memprediksi 
-                probabilitas risiko Hipertensi berdasarkan data kesehatan dan gaya hidup pasien. # Diubah
-            </p>
+        <div style="text-align: center; padding: 1rem 0 2rem 0;">
+            <h1 style="color: #A67D45; font-size: 2.3rem; font-weight: 700; margin-bottom: 0.5rem;">Tim Pengembang</h1>
+            <p style="color: #666; font-size: 1rem; margin: 0;">Kelompok 6 Sistem Informasi, Universitas Andalas</p>
+             <p style="color: #666; font-size: 1rem; margin: 0; margin-top: 10px; font-weight: 700;">Dosen Pengampu : Rahmatika Pratama Santi, M.T.</p>
         </div>
         """,
         unsafe_allow_html=True,
     )
-
-    col1, col2 = st.columns(2, gap="large")
-
-    # =======================
-    # KOLOM KIRI: TIM & DOSEN
-    # =======================
-    with col1:
-        st.markdown("### 👥 Kelompok 4 - Tim Pengembang")
-        st.markdown(
-            """
-            <div class="data-card">
-                <ul style="list-style: none; padding: 0; line-height: 2.5;">
-                    <li>👤 <strong>Della Khairunnisa</strong> — 2311523032</li>
-                    <li>👤 <strong>Loly Amelia Nurza</strong> — 2311521016</li>
-                    <li>👤 <strong>Abdul Hakim Aziz</strong> — 2311523020</li>
-                </ul>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-        st.markdown("### 👨‍🏫 Dosen Pengampu")
-        st.markdown(
-            """
-            <div class="data-card">
-                <p style="font-size: 1.1rem; color: #555;">
-                    <strong>Rahmatika Pratama Santi, M.T</strong>
-                </p>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-    # ==========================
-    # KOLOM KANAN: TEKNOLOGI
-    # ==========================
-    with col2:
-        st.markdown("### 🛠️ Teknologi yang Digunakan")
-        st.markdown(
-            """
-            <div class="data-card">
-                <ul style="line-height: 2;">
-                    <li>🐍 <strong>Python</strong> - Bahasa pemrograman</li>
-                    <li>🎨 <strong>Streamlit</strong> - Framework web interaktif</li>
-                    <li>📊 <strong>Pandas & NumPy</strong> - Pengolahan data</li>
-                    <li>🤖 <strong>Scikit-learn</strong> - Machine learning</li>
-                    <li>📈 <strong>Matplotlib & Seaborn</strong> - Visualisasi</li>
-                    <li>🌳 <strong>Random Forest</strong> - Algoritma prediksi</li>
-                </ul>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-    st.markdown("### 🔄 Alur Kerja Aplikasi")
-
-    # List berisi tahapan alur kerja, diperbarui labelnya
-    steps = [
-        ("1️⃣", "Home", "Pengenalan aplikasi TensiCare+ dan tombol mulai"),
-        ("2️⃣", "Input Dataset", "Unggah file CSV dataset kesehatan (Diubah)"),
-        ("3️⃣", "Preprocessing Data", "Pembersihan data dan penanganan missing values"),
-        ("4️⃣", "Analisis Data", "Training model Random Forest dan evaluasi performa"),
-        ("5️⃣", "Data Visualization", "Eksplorasi grafik distribusi, korelasi, dan feature importance"),
-        ("6️⃣", "Use Model", "Input data kesehatan personal dan prediksi risiko Hipertensi (Diubah)"),
-        ("7️⃣", "About", "Informasi tim pengembang dan teknologi"),
+    
+    # --- TEAM MEMBER DATA (urutan: Loly, Abdul, Della) ---
+    team_members = [
+        {"name": "Loly Amelia Nurza", "nim": "2311521016", "img": "loly.jpg"},
+        {"name": "Abdul Hakim Aziz", "nim": "2311523020", "img": "abdul.jpg"},
+        {"name": "Della Khairunnisa", "nim": "2311523032", "img": "della.jpg"},
     ]
-
-    # Loop untuk menampilkan setiap step
-    for icon, title, desc in steps:
-        st.markdown(
-            f"""
-            <div class="data-card" style="margin-bottom: 1rem;">
-                <h4 style="color: #A67D45; margin-bottom: 0.5rem;">{icon} {title}</h4> # Ganti warna teks
-                <p style="color: #666; margin: 0;">{desc}</p>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-    st.markdown("---")
-    # Footer ucapan terima kasih dengan warna baru
+    
+    # Get base path for images
+    base_path = Path(__file__).parent.parent / "images"
+    
+    # Create 3 equal columns with spacing
+    col1, col2, col3 = st.columns([1, 1, 1], gap="large")
+    columns = [col1, col2, col3]
+    
+    for i, member in enumerate(team_members):
+        with columns[i]:
+            # Get image as base64
+            img_path = base_path / member["img"]
+            img_base64 = get_image_base64(img_path)
+            
+            if img_base64:
+                img_html = f'<img src="data:image/jpeg;base64,{img_base64}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">'
+            else:
+                initials = "".join([n[0] for n in member["name"].split()[:2]])
+                img_html = f'<div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: 700; color: #A67D45; background: #F0E9E1; border-radius: 50%;">{initials}</div>'
+            
+            st.markdown(
+                f"""
+                <div class="member-card-hover">
+                    <div style="width: 300px; height: 300px; margin: 0 auto 15px auto; border-radius: 50%; border: 4px solid #A67D45; overflow: hidden; background: #F0E9E1;">
+                        {img_html}
+                    </div>
+                    <div style="color: #333; font-weight: 700; font-size: 1.1rem; margin-bottom: 10px;">{member['name']}</div>
+                    <div style="display: inline-block; background: #F0E9E1; color: #A67D45; padding: 8px 16px; border-radius: 25px; font-size: 0.85rem; font-weight: 600; border: 2px solid #A67D45;">NIM: {member['nim']}</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+    
+    # --- SPACER ---
+    st.markdown("<div style='height: 2rem;'></div>", unsafe_allow_html=True)
+    
+    # --- INFO SECTION ---
     st.markdown(
         """
-        <div style="text-align: center; padding: 2rem; background: linear-gradient(135deg, #A67D45 0%, #837057 100%); 
-                    border-radius: 12px; color: white;">
-            <h3 style="color: white;">❤️ Terima kasih telah menggunakan aplikasi ini!</h3>
-            <p style="color: white; margin-top: 1rem;">
-                Dikembangkan dengan ❤️ oleh Kelompok 4 - Sistem Informasi UNAND
-            </p>
+        <div style="background: #F0E9E1; padding: 25px 40px; text-align: center; border-radius: 16px;">
+            <p style="margin: 5px 0; color: #555; font-size: 0.95rem;">Website ini dikembangkan sebagai Tugas Besar Mata Kuliah <strong>Akuisisi Data</strong></p>
+            <p style="margin: 5px 0; color: #555; font-size: 0.95rem;">Program Studi Sistem Informasi, Fakultas Teknologi Informasi</p>
+            <p style="margin: 5px 0; color: #A67D45; font-weight: 600; font-size: 0.95rem;">Universitas Andalas</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    
+    # --- FOOTER ---
+    st.markdown(
+        """
+        <div style="text-align: center; margin-top: 2.5rem; padding: 1.5rem; border-top: 1px solid #ddd; color: #666;">
+            <p style="margin: 5px 0; font-size: 0.9rem;">© 2024 <span style="color: #A67D45; font-weight: 600;">TensiCare+</span> — Sistem Prediksi Risiko Hipertensi</p>
+            <p style="margin: 5px 0; font-size: 0.9rem;">Dibuat oleh <strong>Tim Pengembang Kelompok 6</strong></p>
         </div>
         """,
         unsafe_allow_html=True,

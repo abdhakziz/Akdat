@@ -40,21 +40,22 @@ add_custom_css()
 #   SIDEBAR NAVIGATION (Fixed Logic)
 # ----------------------------
 with st.sidebar:
-    # Logo TensiCare+
-    st.markdown("""
-    <div class="logo-container">
-        <div class="logo-text">TensiCare+</div>
-    </div>
-    """, unsafe_allow_html=True)
+    # Logo TensiCare+ (menggunakan gambar, di tengah)
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.image("images/logo.png", width=200)
+    # Garis putih di bawah logo (jarak dikurangi)
+    st.markdown("<hr style='border: none; border-top: 2px solid white; margin: 0.2rem 0 0.8rem 0;'>", unsafe_allow_html=True)
     
     # Daftar menu FINAL
     menu_options = (
         "Home",
         "Input Dataset",       
         "Preprocessing Data",
-        "Analisis Data",
+        "Data Analysis",
         "Data Visualization",
-        "Use Model",           
+        "Use Model",
+        "About Us",           
     )
     
     # Mapping label menu di sidebar ke nama page/file yang sebenarnya
@@ -103,13 +104,11 @@ elif current_page_to_show == "Upload Dataset":
     show_upload_dataset()
 elif current_page_to_show == "Preprocessing Data":
     show_preprocessing()
-elif current_page_to_show == "Analisis Data":
+elif current_page_to_show == "Data Analysis":
     show_analysis()
 elif current_page_to_show == "Data Visualization":
     show_visualization()
 elif current_page_to_show == "Prediction": 
     show_prediction()
-
-# Note: Jika Anda melihat sisa-sisa tampilan menu "About" di tempat lain,
-# itu karena st.session_state["page"] pernah berisi "About". Anda bisa mengabaikannya
-# atau mereset session state jika diperlukan.
+elif current_page_to_show == "About Us":
+    show_about()

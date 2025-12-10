@@ -1,78 +1,88 @@
 import streamlit as st
 
-# Fungsi utama untuk menampilkan halaman Home
 def show_home():
-    # Judul utama di tengah halaman
-    st.markdown("<h1 style='text-align: center;'>❤️ Selamat Datang di TensiCare+!</h1>", unsafe_allow_html=True)
+    """Halaman Home dengan desain modern: Hero Section, Alur Kerja, dan Footer."""
     
-    # Membuat layout 2 kolom
-    col1, col2 = st.columns([2, 1], gap="large")
+    # --- HERO SECTION ---
+    st.markdown(
+        """
+        <div class="hero-section">
+            <h1 class="hero-title">Prediksi Risiko Hipertensi<br/>Berbasis Machine Learning</h1>
+            <p class="hero-subtitle" style="text-align: center; margin-left: auto; margin-right: auto;">
+                Deteksi dini risiko tekanan darah tinggi dengan algoritma <strong>Random Forest</strong>. Masukkan 
+                data medis Anda, dapatkan hasil prediksi dalam sekejap.
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
     
-    # -----------------------------------------
-    # KONTEN KIRI: Penjelasan aplikasi & Alur
-    # -----------------------------------------
-    with col1:
-        # Card sambutan utama dengan judul yang mencerminkan gambar yang dikirim user
-        st.markdown(
-            """
-            <div class="welcome-card">
-                <div class="welcome-title" style="color: #A67D45; margin-bottom: 2rem; font-size: 2.5rem;">
-                    Cegah Lebih Awal, Kenali Risiko Hipertensi Anda Sekarang!
+    # --- ALUR KERJA SISTEM ---
+    st.markdown(
+        """
+        <div class="workflow-header">
+            <h2>Alur Kerja Sistem</h2>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    
+    # Workflow steps dengan 5 kolom
+    cols = st.columns(5, gap="medium")
+    
+    workflow_steps = [
+        {"num": "1", "icon": "📥", "title": "Input Dataset", "desc": "Upload file CSV data kesehatan"},
+        {"num": "2", "icon": "🔄", "title": "Preprocessing", "desc": "Pembersihan & persiapan data"},
+        {"num": "3", "icon": "📊", "title": "Analisis Data", "desc": "Training model Random Forest"},
+        {"num": "4", "icon": "📉", "title": "Visualisasi", "desc": "Eksplorasi data interaktif"},
+        {"num": "5", "icon": "🎯", "title": "Prediksi", "desc": "Hasil risiko hipertensi"},
+    ]
+    
+    for i, step in enumerate(workflow_steps):
+        with cols[i]:
+            st.markdown(
+                f"""
+                <div class="workflow-card">
+                    <div class="step-number">{step['num']}</div>
+                    <div class="step-icon">{step['icon']}</div>
+                    <div class="step-title">{step['title']}</div>
+                    <div class="step-desc">{step['desc']}</div>
                 </div>
-                <div class="welcome-text">
-                    Aplikasi ini dikembangkan untuk membantu masyarakat mengenali risiko 
-                    <strong>tekanan darah tinggi (Hipertensi)</strong> sejak dini. 
-                    Dengan memanfaatkan algoritma Classification, sistem ini dapat memberikan prediksi akurat.
-                </div>
-                <div class="welcome-text">
-                    <strong>Alur Kerja Prediksi Hipertensi:</strong>
-                    <ol style="margin-top: 1rem; line-height: 2;">
-                        <li><strong>Input Dataset</strong> - Unggah file CSV data kesehatan pasien</li>
-                        <li><strong>Preprocessing Data</strong> - Bersihkan dan persiapkan data</li>
-                        <li><strong>Analisis Data</strong> - Latih model Machine Learning</li>
-                        <li><strong>Data Visualization</strong> - Eksplorasi visualisasi data</li>
-                        <li><strong>Use Model</strong> - Prediksi risiko untuk data individu</li>
-                    </ol>
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-        # Tombol untuk memulai alur aplikasi
-        if st.button("🚀 Mulai Sekarang", use_container_width=False):
-            st.session_state["page"] = "Upload Dataset" 
+                """,
+                unsafe_allow_html=True,
+            )
+    
+    # --- TOMBOL CTA ---
+    st.markdown("<div style='height: 2rem;'></div>", unsafe_allow_html=True)
+    
+    col1, col2, col3 = st.columns([2, 1, 2])
+    with col2:
+        # Custom styled button for home page only
+        button_clicked = st.button("Mulai Prediksi Sekarang", use_container_width=True, key="cta_button")
+        
+        # Apply custom burgundy color to this specific button
+        st.markdown("""
+            <style>
+            div[data-testid="stVerticalBlock"] div[data-testid="column"]:nth-child(2) .stButton > button {
+                background-color: #5D1C34 !important;
+            }
+            div[data-testid="stVerticalBlock"] div[data-testid="column"]:nth-child(2) .stButton > button:hover {
+                background-color: #4a1629 !important;
+            }
+            </style>
+        """, unsafe_allow_html=True)
+        
+        if button_clicked:
+            st.session_state["page"] = "Upload Dataset"
             st.rerun()
     
-    # -----------------------------------------
-    # KONTEN KANAN: Tim Pengembang
-    # -----------------------------------------
-    with col2:
-        # Card yang berisi daftar tim pengembang
-        st.markdown(
-            """
-            <div class="info-card">
-                <h4>👥 Tim Pengembang</h4>
-                <ul style="list-style: none; padding: 0;">
-                    <li><span style="font-size: 1.2rem;">👤</span> <strong>Della Khairunnisa</strong> – 2311523032</li>
-                    <li><span style="font-size: 1.2rem;">👤</span> <strong>Loly Amelia Nurza</strong> – 2311521016</li>
-                    <li><span style="font-size: 1.2rem;">👤</span> <strong>Abdul Hakim Aziz</strong> – 2311523020</li>
-                </ul>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-        # Card info ringkas (opsional)
-        st.markdown(
-            """
-            <div class="data-card" style="background: #F0E9E1; border-left: 3px solid #899581; margin-top: 2rem;">
-                <p style="font-weight: 600; color: #A67D45;">
-                    💡 Target Prediksi: Hipertensi
-                </p>
-                <p style="font-size: 0.9rem; color: #555;">
-                    Tekanan darah normal adalah di bawah 120/80 mmHg.
-                </p>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+    # --- FOOTER ---
+    st.markdown(
+        """
+        <div class="home-footer">
+            <p>© 2024 <span class="footer-brand">TensiCare+</span> — Sistem Prediksi Risiko Hipertensi</p>
+            <p>Dibuat oleh <strong>Tim Pengembang Kelompok 6</strong></p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
