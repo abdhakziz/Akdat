@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
-from helpers import preprocess_data, apply_standardization, apply_normalization
+from helpers import preprocess_data
 
 
 def show_preprocessing():
@@ -71,25 +70,6 @@ def show_preprocessing():
     """, unsafe_allow_html=True)
 
     # -----------------------------------------
-    # OPSI TRANSFORMASI DATA (dalam expander agar tidak mengganggu layout utama)
-    # -----------------------------------------
-    with st.expander("⚙️ Opsi Transformasi Data (Opsional)", expanded=False):
-        transform_option = st.radio(
-            "Pilih metode transformasi:",
-            options=["Tidak ada transformasi", "Standarisasi (StandardScaler)", "Normalisasi (MinMaxScaler)"],
-            index=0,
-            key="transform_option",
-            horizontal=True
-        )
-        st.caption("ℹ️ **Standarisasi**: Mengubah data ke skala dengan mean=0 dan std=1. **Normalisasi**: Mengubah data ke skala 0-1.")
-    
-    # Default jika tidak dibuka expander
-    if "transform_option" not in st.session_state:
-        transform_option = "Tidak ada transformasi"
-    else:
-        transform_option = st.session_state.get("transform_option", "Tidak ada transformasi")
-
-    # -----------------------------------------
     # TOMBOL HAPUS DUPLIKAT DAN NILAI NULL - warna hijau sidebar
     # -----------------------------------------
     # Custom CSS for green button
@@ -112,22 +92,7 @@ def show_preprocessing():
             # Panggil fungsi preprocess_data dari helpers
             clean_df, info = preprocess_data(df_raw)
             
-            # Terapkan transformasi jika dipilih
-            transform_applied = "Tidak ada"
-            if transform_option == "Standarisasi (StandardScaler)":
-                numeric_cols = clean_df.select_dtypes(include=[np.number]).columns.tolist()
-                if numeric_cols:
-                    clean_df, scaler = apply_standardization(clean_df, numeric_cols)
-                    st.session_state["scaler"] = scaler
-                    transform_applied = "StandardScaler"
-            elif transform_option == "Normalisasi (MinMaxScaler)":
-                numeric_cols = clean_df.select_dtypes(include=[np.number]).columns.tolist()
-                if numeric_cols:
-                    clean_df, scaler = apply_normalization(clean_df, numeric_cols)
-                    st.session_state["scaler"] = scaler
-                    transform_applied = "MinMaxScaler"
-            
-            info["transform_applied"] = transform_applied
+            info["transform_applied"] = "Tidak ada"
             
             # Simpan hasil preprocessing ke session_state
             st.session_state["clean_df"] = clean_df

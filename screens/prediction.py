@@ -530,18 +530,65 @@ def show_batch_prediction():
             with st.expander("🔍 Preview Data (5 baris pertama)"):
                 st.dataframe(df_new.head(), use_container_width=True)
             
-            # Cek apakah semua fitur ada di CSV
+            # Cek kolom yang tersedia dan yang tidak ada
+            available_features = [f for f in features if f in df_new.columns]
             missing_features = [f for f in features if f not in df_new.columns]
+            extra_columns = [c for c in df_new.columns if c not in features]
+            
+            # Tampilkan informasi kolom
+            if extra_columns:
+                st.info(f"ℹ️ Kolom berikut tidak digunakan dalam model dan akan diabaikan: `{', '.join(extra_columns[:10])}{'...' if len(extra_columns) > 10 else ''}`")
+            
+            # Jika ada fitur yang hilang, cek apakah masih bisa diprediksi
             if missing_features:
-                st.error(f"❌ Kolom berikut tidak ditemukan di CSV: `{', '.join(missing_features)}`")
-                st.info("💡 Pastikan file CSV memiliki kolom yang sama seperti data training.")
-                return
+                st.warning(f"⚠️ Kolom berikut tidak ditemukan di CSV: `{', '.join(missing_features)}`")
+                
+                # Jika tidak ada fitur yang tersedia, tidak bisa prediksi
+                if not available_features:
+                    st.error("❌ Tidak ada kolom yang cocok dengan fitur model. Tidak dapat melakukan prediksi.")
+                    return
+                
+                # Tampilkan persentase fitur yang tersedia
+                pct_available = len(available_features) / len(features) * 100
+                st.info(f"📊 {len(available_features)} dari {len(features)} fitur tersedia ({pct_available:.1f}%). Prediksi akan dilakukan dengan fitur yang ada.")
+                
+                # Peringatan jika terlalu sedikit fitur
+                if pct_available < 50:
+                    st.warning("⚠️ Kurang dari 50% fitur tersedia. Akurasi prediksi mungkin terpengaruh.")
             
             # Tombol prediksi batch
             if st.button("🚀 Prediksi Batch", use_container_width=True, key="run_batch_pred"):
                 with st.spinner("⏳ Sedang melakukan prediksi..."):
-                    # Ambil hanya kolom fitur yang diperlukan
-                    X_new = df_new[features]
+                    # Ambil kolom yang tersedia
+                    X_new = df_new[available_features].copy()
+                    
+                    # Jika ada fitur yang hilang, isi dengan nilai default (0 atau median)
+                    if missing_features:
+                        for feat in missing_features:
+                            X_new[feat] = 0  # Default value
+                    
+                    # Urutkan kolom sesuai dengan urutan fitur model
+                    X_new = X_new[features]
+                    
+                    # Konversi kolom kategorikal (string) ke numerik
+                    categorical_cols = X_new.select_dtypes(include=['object', 'category']).columns.tolist()
+                    encoding_info = {}
+                    
+                    if categorical_cols:
+                        st.info(f"🔄 Mengkonversi kolom kategorikal ke numerik: `{', '.join(categorical_cols)}`")
+                        from sklearn.preprocessing import LabelEncoder
+                        
+                        for col in categorical_cols:
+                            le = LabelEncoder()
+                            # Handle missing values
+                            X_new[col] = X_new[col].fillna('Unknown')
+                            X_new[col] = le.fit_transform(X_new[col].astype(str))
+                            encoding_info[col] = dict(zip(le.classes_, le.transform(le.classes_)))
+                        
+                        # Tampilkan mapping encoding di expander
+                        with st.expander("📋 Mapping Encoding Kolom Kategorikal"):
+                            for col, mapping in encoding_info.items():
+                                st.write(f"**{col}:** {mapping}")
                     
                     # Prediksi
                     predictions = model.predict(X_new)

@@ -3,215 +3,293 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import seaborn as sns
 
 
 def show_visualization():
     # Judul halaman
     st.markdown("<h1 style='text-align: center; color: #A67D45;'>Data Visualization</h1>", unsafe_allow_html=True)
 
-    # Pastikan data sudah di-preprocess
-    if st.session_state.get("clean_df") is None:
-        st.warning("⚠️ Silakan lakukan preprocessing data terlebih dahulu di halaman **Preprocessing Data**.")
-        if st.button("← Kembali ke Preprocessing"):
-            st.session_state["page"] = "Preprocessing Data"
+    # Pastikan sudah ada model (setelah analisis)
+    if st.session_state.get("rf_model") is None:
+        st.warning("⚠️ Silakan lakukan analisis data terlebih dahulu di halaman **Data Analysis**.")
+        if st.button("← Kembali ke Data Analysis"):
+            st.session_state["page"] = "Data Analysis"
             st.rerun()
         return
     
-    df = st.session_state["clean_df"]
-    columns_list = df.columns.tolist()
+    # Ambil data dari session state
+    df = st.session_state.get("clean_df")
+    model = st.session_state.get("rf_model")
+    acc = st.session_state.get("acc", 0)
+    X_cols = st.session_state.get("X_cols", [])
+    target_col = st.session_state.get("target_col", "target")
+    
+    # -----------------------------------------
+    # RINGKASAN HASIL ANALISIS
+    # -----------------------------------------
+    st.markdown("""
+    <div style="background: linear-gradient(135deg, #A67D45 0%, #8B6914 100%); border-radius: 12px; padding: 25px; margin-bottom: 25px; color: white;">
+        <h3 style="color: white; margin-bottom: 15px; text-align: center;">📊 Ringkasan Hasil Analisis</h3>
+        <p style="color: rgba(255,255,255,0.9); text-align: center; font-size: 0.95rem;">
+            Visualisasi berikut menampilkan hasil analisis model Random Forest yang telah dilatih.
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Metrics
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.markdown(f"""
+        <div style="background: #d4edda; border-radius: 12px; padding: 20px; text-align: center;">
+            <div style="color: #155724; font-size: 0.9rem; font-weight: 600;">🎯 Akurasi Model</div>
+            <div style="color: #155724; font-size: 2.2rem; font-weight: bold;">{acc*100:.1f}%</div>
+        </div>
+        """, unsafe_allow_html=True)
+    with col2:
+        st.markdown(f"""
+        <div style="background: #e8f4f8; border-radius: 12px; padding: 20px; text-align: center;">
+            <div style="color: #0c5460; font-size: 0.9rem; font-weight: 600;">📋 Jumlah Fitur</div>
+            <div style="color: #0c5460; font-size: 2.2rem; font-weight: bold;">{len(X_cols)}</div>
+        </div>
+        """, unsafe_allow_html=True)
+    with col3:
+        st.markdown(f"""
+        <div style="background: #fff3cd; border-radius: 12px; padding: 20px; text-align: center;">
+            <div style="color: #856404; font-size: 0.9rem; font-weight: 600;">📁 Total Data</div>
+            <div style="color: #856404; font-size: 2.2rem; font-weight: bold;">{len(df):,}</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
 
     # -----------------------------------------
-    # PILIH VISUALISASI
+    # PILIH JENIS VISUALISASI
     # -----------------------------------------
     st.markdown("""
     <div style="background: #F0E9E1; border-radius: 12px; padding: 20px; margin-bottom: 20px;">
         <div style="margin-bottom: 10px;">
-            <span style="color: #A67D45; font-weight: 600;">Pilih Visualisasi</span>
+            <span style="color: #A67D45; font-weight: 600;">📈 Pilih Jenis Visualisasi</span>
         </div>
     </div>
     """, unsafe_allow_html=True)
     
-    # Opsi visualisasi
-    viz_options = [
-        "Distribusi Data (Histogram)",
-        "Korelasi Antar Fitur (Heatmap)",
-        "Bar Chart - Perbandingan Kolom",
-        "Scatter Plot - Hubungan 2 Variabel",
-        "Box Plot - Distribusi per Kategori"
-    ]
+    viz_options = ["Histogram - Sebaran Fitur", "Pie Chart - Distribusi Target"]
     
-    selected_viz = st.selectbox(
-        "Pilih jenis visualisasi",
+    selected_viz = st.radio(
+        "Pilih jenis visualisasi:",
         options=viz_options,
         key="viz_select",
+        horizontal=True,
         label_visibility="collapsed"
     )
 
-    # -----------------------------------------
-    # HASIL VISUALISASI
-    # -----------------------------------------
-    
-    # Render visualisasi berdasarkan pilihan
-    if selected_viz == "Distribusi Data (Histogram)":
-        # Pilih kolom untuk histogram
-        numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
-        if numeric_cols:
-            selected_col = st.selectbox("Pilih kolom untuk histogram:", numeric_cols, key="hist_col")
-            
-            fig, ax = plt.subplots(figsize=(10, 5))
-            sns.histplot(df[selected_col], bins=20, kde=True, ax=ax, color="steelblue")
-            ax.set_xlabel(selected_col, fontsize=12, fontweight="bold")
-            ax.set_ylabel("Frekuensi", fontsize=12, fontweight="bold")
-            ax.set_title(f"Distribusi {selected_col}", fontsize=14, fontweight="bold", pad=15)
-            plt.tight_layout()
-            st.pyplot(fig)
-        else:
-            st.info("ℹ️ Tidak ada kolom numerik untuk ditampilkan.")
-    
-    elif selected_viz == "Korelasi Antar Fitur (Heatmap)":
-        fig, ax = plt.subplots(figsize=(12, 8))
-        corr = df.corr()
-        mask = np.triu(np.ones_like(corr, dtype=bool))
-        sns.heatmap(
-            corr,
-            mask=mask,
-            cmap="coolwarm",
-            ax=ax,
-            annot=True if len(corr) <= 10 else False,
-            fmt=".2f" if len(corr) <= 10 else None,
-            square=True,
-            linewidths=0.5,
-            cbar_kws={"shrink": 0.8},
-        )
-        ax.set_title("Heatmap Korelasi Antar Fitur", fontsize=14, fontweight="bold", pad=20)
-        plt.tight_layout()
-        st.pyplot(fig)
-    
-    elif selected_viz == "Bar Chart - Perbandingan Kolom":
-        selected_col = st.selectbox("Pilih kolom untuk bar chart:", columns_list, key="bar_col")
-        
-        fig, ax = plt.subplots(figsize=(10, 6))
-        value_counts = df[selected_col].value_counts().sort_index()
-        
-        # Cek apakah kolom adalah binary (0/1)
-        unique_vals = set(value_counts.index)
-        is_binary = unique_vals.issubset({0, 1, 0.0, 1.0}) and len(unique_vals) == 2
-        
-        # Daftar kolom khusus
-        gender_cols = ['gender', 'sex', 'male', 'female', 'jenis_kelamin', 'is_male', 'is_female']
-        hypertension_cols = ['hypertension', 'hipertensi', 'target', 'diabetes', 'smoking', 'stroke', 'heart_disease']
-        
-        is_gender_col = selected_col.lower() in gender_cols and is_binary
-        is_hypertension_col = selected_col.lower() in hypertension_cols or (is_binary and selected_col.lower() not in gender_cols)
-        
-        if is_gender_col:
-            # Map 0/1 ke Perempuan/Laki-laki
-            label_map = {0: 'Perempuan', 1: 'Laki-laki', 0.0: 'Perempuan', 1.0: 'Laki-laki'}
-            labels = [label_map.get(x, str(x)) for x in value_counts.index]
-            # Warna Pink untuk Perempuan, Biru untuk Laki-laki
-            colors = ['#FF69B4', '#4169E1']
-            title = f"Distribusi Jenis Kelamin"
-            
-            # Buat bar dengan label untuk legend
-            for i, (label, val, color) in enumerate(zip(labels, value_counts.values, colors)):
-                bar = ax.bar(label, val, color=color, edgecolor='white', linewidth=2, label=label)
-                ax.text(i, val, f'{int(val):,}', ha='center', va='bottom', fontsize=14, fontweight='bold')
-            
-            ax.legend(title="Keterangan", loc='upper right', fontsize=11, title_fontsize=12)
-            
-        elif is_hypertension_col and is_binary:
-            # Map 0/1 ke Tidak/Ya
-            label_map = {0: 'Tidak', 1: 'Ya', 0.0: 'Tidak', 1.0: 'Ya'}
-            labels = [label_map.get(x, str(x)) for x in value_counts.index]
-            # Warna Biru tua untuk Tidak, Merah untuk Ya
-            colors = ['#3498db', '#e74c3c']
-            title = f"Distribusi Hipertensi (Ya/Tidak)" if selected_col.lower() in ['hypertension', 'hipertensi'] else f"Distribusi {selected_col}"
-            
-            # Buat bar dengan label untuk legend
-            for i, (label, val, color) in enumerate(zip(labels, value_counts.values, colors)):
-                bar = ax.bar(label, val, color=color, edgecolor='white', linewidth=2, label=label)
-                ax.text(i, val, f'{int(val):,}', ha='center', va='bottom', fontsize=14, fontweight='bold')
-            
-            ax.legend(title="Keterangan", loc='upper right', fontsize=11, title_fontsize=12)
-        else:
-            labels = [str(x) for x in value_counts.index]
-            colors = plt.cm.Blues(np.linspace(0.4, 0.8, len(value_counts)))
-            bars = ax.bar(labels, value_counts.values, color=colors, edgecolor='white', linewidth=1)
-            title = f"Distribusi {selected_col}"
-            
-            # Tambahkan jumlah di atas bar
-            for bar in bars:
-                height = bar.get_height()
-                ax.text(bar.get_x() + bar.get_width()/2., height, f'{int(height):,}',
-                        ha='center', va='bottom', fontsize=12, fontweight='bold')
-        
-        ax.set_xlabel(selected_col, fontsize=12, fontweight="bold")
-        ax.set_ylabel("Jumlah", fontsize=12, fontweight="bold")
-        ax.set_title(title, fontsize=14, fontweight="bold", pad=15)
-        
-        plt.xticks(rotation=0)
-        plt.tight_layout()
-        st.pyplot(fig)
-    
-    elif selected_viz == "Scatter Plot - Hubungan 2 Variabel":
-        numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
-        if len(numeric_cols) >= 2:
-            col1, col2 = st.columns(2)
-            with col1:
-                x_col = st.selectbox("Pilih variabel X:", numeric_cols, key="scatter_x")
-            with col2:
-                y_col = st.selectbox("Pilih variabel Y:", numeric_cols, index=1 if len(numeric_cols) > 1 else 0, key="scatter_y")
-            
-            fig, ax = plt.subplots(figsize=(10, 6))
-            
-            # Cek apakah Y column adalah gender-related (0/1 binary)
-            y_data = df[y_col]
-            y_unique = y_data.dropna().unique()
-            gender_cols = ['gender', 'sex', 'male', 'female', 'jenis_kelamin', 'is_male', 'is_female']
-            
-            is_gender_col = y_col.lower() in gender_cols and len(y_unique) == 2 and set(y_unique).issubset({0, 1, 0.0, 1.0})
-            
-            if is_gender_col:
-                # Map 0/1 ke Perempuan/Laki-laki
-                y_mapped = y_data.map({0: 'Perempuan', 1: 'Laki-laki', 0.0: 'Perempuan', 1.0: 'Laki-laki'})
-                
-                # Buat scatter plot dengan categorical y-axis
-                for i, (label, color) in enumerate([('Perempuan', '#FF69B4'), ('Laki-laki', '#4169E1')]):
-                    mask = y_mapped == label
-                    ax.scatter(df[x_col][mask], [i] * mask.sum(), alpha=0.6, color=color, edgecolors='white', linewidth=0.5, label=label)
-                
-                ax.set_yticks([0, 1])
-                ax.set_yticklabels(['Perempuan', 'Laki-laki'])
-                ax.legend()
-            else:
-                ax.scatter(df[x_col], df[y_col], alpha=0.6, color="steelblue", edgecolors='white', linewidth=0.5)
-            
-            ax.set_xlabel(x_col, fontsize=12, fontweight="bold")
-            ax.set_ylabel(y_col, fontsize=12, fontweight="bold")
-            ax.set_title(f"Scatter Plot: {x_col} vs {y_col}", fontsize=14, fontweight="bold", pad=15)
-            plt.tight_layout()
-            st.pyplot(fig)
-        else:
-            st.info("ℹ️ Minimal 2 kolom numerik diperlukan untuk scatter plot.")
-    
-    elif selected_viz == "Box Plot - Distribusi per Kategori":
-        numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
-        if numeric_cols:
-            selected_col = st.selectbox("Pilih kolom numerik:", numeric_cols, key="box_col")
-            
-            fig, ax = plt.subplots(figsize=(10, 5))
-            box = ax.boxplot(df[selected_col].dropna(), patch_artist=True)
-            box['boxes'][0].set_facecolor('steelblue')
-            ax.set_ylabel(selected_col, fontsize=12, fontweight="bold")
-            ax.set_title(f"Box Plot: {selected_col}", fontsize=14, fontweight="bold", pad=15)
-            plt.tight_layout()
-            st.pyplot(fig)
-        else:
-            st.info("ℹ️ Tidak ada kolom numerik untuk ditampilkan.")
+    st.markdown("---")
 
     # -----------------------------------------
-    # TOMBOL NAVIGASI: PREVIOUS & NEXT
+    # VISUALISASI: HISTOGRAM
+    # -----------------------------------------
+    if selected_viz == "Histogram - Sebaran Fitur":
+        st.markdown("""
+        <div style="background: #e8f4f8; border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+            <h3 style="color: #0c5460; margin-bottom: 10px;">📊 Histogram - Sebaran Fitur yang Digunakan Model</h3>
+            <p style="color: #0c5460; font-size: 0.95rem; margin: 0;">
+                Visualisasi ini menunjukkan <b>bagaimana nilai-nilai tersebar</b> pada fitur yang digunakan untuk melatih model. 
+                Anda dapat melihat distribusi nilai berdasarkan status target (berisiko atau tidak berisiko).
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Hanya tampilkan fitur numerik yang cocok untuk histogram (bukan binary/kategorikal)
+        # Filter: harus numerik DAN memiliki lebih dari 5 nilai unik (bukan binary atau kategori sederhana)
+        numeric_features = []
+        for col in X_cols:
+            if df[col].dtype in ['int64', 'float64']:
+                unique_count = df[col].nunique()
+                # Hanya tampilkan jika nilai unik lebih dari 5 (bukan binary atau kategorikal sederhana)
+                if unique_count > 5:
+                    numeric_features.append(col)
+        
+        if numeric_features:
+            selected_feature = st.selectbox(
+                "🔢 Pilih fitur yang ingin divisualisasikan:",
+                options=numeric_features,
+                key="hist_feature"
+            )
+            
+            # Pisahkan data berdasarkan target
+            if target_col in df.columns:
+                df_risiko = df[df[target_col] == 1]
+                df_tidak_risiko = df[df[target_col] == 0]
+                
+                fig, ax = plt.subplots(figsize=(12, 6))
+                
+                # Histogram untuk kedua kelompok
+                ax.hist(df_tidak_risiko[selected_feature].dropna(), bins=20, alpha=0.7, 
+                        label=f'Tidak Berisiko (n={len(df_tidak_risiko):,})', color='#3498db', edgecolor='white')
+                ax.hist(df_risiko[selected_feature].dropna(), bins=20, alpha=0.7, 
+                        label=f'Berisiko (n={len(df_risiko):,})', color='#e74c3c', edgecolor='white')
+                
+                # Garis rata-rata
+                mean_tidak = df_tidak_risiko[selected_feature].mean()
+                mean_risiko = df_risiko[selected_feature].mean()
+                ax.axvline(mean_tidak, color='#2980b9', linestyle='--', linewidth=2, label=f'Rata-rata Tidak Berisiko: {mean_tidak:.1f}')
+                ax.axvline(mean_risiko, color='#c0392b', linestyle='--', linewidth=2, label=f'Rata-rata Berisiko: {mean_risiko:.1f}')
+                
+                ax.set_xlabel(selected_feature, fontsize=12, fontweight='bold')
+                ax.set_ylabel('Jumlah Pasien', fontsize=12, fontweight='bold')
+                ax.set_title(f'Perbandingan Sebaran {selected_feature}\nBerdasarkan Status Risiko', fontsize=14, fontweight='bold')
+                ax.legend(loc='upper right', fontsize=10)
+                ax.grid(axis='y', alpha=0.3)
+                plt.tight_layout()
+                st.pyplot(fig)
+                
+                # Insight
+                st.markdown("#### 💡 Insight")
+                
+                col_s1, col_s2 = st.columns(2)
+                with col_s1:
+                    st.markdown(f"""
+                    <div style="background: #d6eaf8; border-radius: 10px; padding: 15px; border-left: 4px solid #3498db;">
+                        <div style="font-weight: 600; color: #2471a3; margin-bottom: 8px;">🟦 Tidak Berisiko</div>
+                        <div style="color: #1a5276;">
+                            • Rata-rata: <b>{mean_tidak:.2f}</b><br>
+                            • Median: <b>{df_tidak_risiko[selected_feature].median():.2f}</b><br>
+                            • Min - Max: <b>{df_tidak_risiko[selected_feature].min():.1f} - {df_tidak_risiko[selected_feature].max():.1f}</b>
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                
+                with col_s2:
+                    st.markdown(f"""
+                    <div style="background: #fadbd8; border-radius: 10px; padding: 15px; border-left: 4px solid #e74c3c;">
+                        <div style="font-weight: 600; color: #922b21; margin-bottom: 8px;">🟥 Berisiko</div>
+                        <div style="color: #78281f;">
+                            • Rata-rata: <b>{mean_risiko:.2f}</b><br>
+                            • Median: <b>{df_risiko[selected_feature].median():.2f}</b><br>
+                            • Min - Max: <b>{df_risiko[selected_feature].min():.1f} - {df_risiko[selected_feature].max():.1f}</b>
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                
+                # Interpretasi perbedaan
+                diff = mean_risiko - mean_tidak
+                diff_pct = abs(diff / mean_tidak * 100) if mean_tidak != 0 else 0
+                
+                if diff > 0:
+                    interpretation = f"Kelompok <b>Berisiko</b> cenderung memiliki nilai <b>{selected_feature}</b> yang lebih <b>tinggi</b> dibanding kelompok Tidak Berisiko (selisih {diff:.2f} atau {diff_pct:.1f}% lebih tinggi)."
+                else:
+                    interpretation = f"Kelompok <b>Berisiko</b> cenderung memiliki nilai <b>{selected_feature}</b> yang lebih <b>rendah</b> dibanding kelompok Tidak Berisiko (selisih {abs(diff):.2f} atau {diff_pct:.1f}% lebih rendah)."
+                
+                st.markdown(f"""
+                <div style="background: #f8f9fa; border-radius: 10px; padding: 15px; margin-top: 15px; border-left: 4px solid #A67D45;">
+                    <div style="font-weight: 600; color: #A67D45; margin-bottom: 8px;">📌 Interpretasi</div>
+                    <div style="color: #333;">{interpretation}</div>
+                </div>
+                """, unsafe_allow_html=True)
+            else:
+                st.warning("⚠️ Kolom target tidak ditemukan.")
+        else:
+            st.warning("⚠️ Tidak ada fitur numerik yang tersedia.")
+
+    # -----------------------------------------
+    # VISUALISASI: PIE CHART
+    # -----------------------------------------
+    elif selected_viz == "Pie Chart - Distribusi Target":
+        st.markdown("""
+        <div style="background: #e8f4f8; border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+            <h3 style="color: #0c5460; margin-bottom: 10px;">🥧 Pie Chart - Distribusi Target (Berisiko vs Tidak Berisiko)</h3>
+            <p style="color: #0c5460; font-size: 0.95rem; margin: 0;">
+                Visualisasi ini menunjukkan <b>proporsi data</b> antara pasien yang berisiko dan tidak berisiko 
+                berdasarkan hasil analisis.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        if target_col in df.columns:
+            value_counts = df[target_col].value_counts().sort_index()
+            total = len(df)
+            
+            # Hitung jumlah dan persentase
+            tidak_risiko = value_counts.get(0, 0) + value_counts.get(0.0, 0)
+            risiko = value_counts.get(1, 0) + value_counts.get(1.0, 0)
+            
+            labels = ['Tidak Berisiko', 'Berisiko']
+            sizes = [tidak_risiko, risiko]
+            colors = ['#3498db', '#e74c3c']
+            explode = (0.02, 0.05)  # Sedikit menonjolkan yang berisiko
+            
+            # Buat pie chart (ukuran lebih kecil agar muat satu layar)
+            fig, ax = plt.subplots(figsize=(4, 3))
+            
+            wedges, texts, autotexts = ax.pie(
+                sizes,
+                labels=labels,
+                autopct=lambda pct: f'{pct:.1f}%\n({int(pct/100*total):,} pasien)',
+                colors=colors,
+                startangle=90,
+                explode=explode,
+                shadow=True,
+                textprops={'fontsize': 12, 'fontweight': 'bold'}
+            )
+            
+            for autotext in autotexts:
+                autotext.set_color('white')
+                autotext.set_fontsize(11)
+            
+            ax.set_title('Proporsi Pasien Berdasarkan Status Risiko', fontsize=14, fontweight='bold', pad=20)
+            plt.tight_layout()
+            st.pyplot(fig)
+            
+            # Insight
+            st.markdown("#### 💡 Insight")
+            
+            pct_risiko = risiko / total * 100
+            pct_tidak = tidak_risiko / total * 100
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                st.markdown(f"""
+                <div style="background: #d6eaf8; border-radius: 12px; padding: 20px; text-align: center; border-left: 4px solid #3498db;">
+                    <div style="font-weight: 600; color: #2471a3; font-size: 1rem;">✅ Tidak Berisiko</div>
+                    <div style="color: #1a5276; font-size: 2rem; font-weight: bold; margin: 10px 0;">{tidak_risiko:,}</div>
+                    <div style="color: #2471a3; font-size: 1.2rem;">({pct_tidak:.1f}%)</div>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            with col2:
+                st.markdown(f"""
+                <div style="background: #fadbd8; border-radius: 12px; padding: 20px; text-align: center; border-left: 4px solid #e74c3c;">
+                    <div style="font-weight: 600; color: #922b21; font-size: 1rem;">⚠️ Berisiko</div>
+                    <div style="color: #78281f; font-size: 2rem; font-weight: bold; margin: 10px 0;">{risiko:,}</div>
+                    <div style="color: #922b21; font-size: 1.2rem;">({pct_risiko:.1f}%)</div>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            # Interpretasi
+            if pct_risiko > 50:
+                balance_text = f"Data <b>tidak seimbang</b> dengan mayoritas pasien (<b>{pct_risiko:.1f}%</b>) masuk kategori <b>berisiko</b>."
+                recommendation = "Perhatian: Proporsi pasien berisiko lebih banyak dari yang tidak berisiko."
+            elif pct_risiko < 20:
+                balance_text = f"Data <b>tidak seimbang</b> dengan hanya <b>{pct_risiko:.1f}%</b> pasien yang masuk kategori <b>berisiko</b>."
+                recommendation = "Ini adalah kondisi yang diharapkan karena sebagian besar pasien tidak berisiko."
+            else:
+                balance_text = f"Data cukup <b>seimbang</b> dengan <b>{pct_risiko:.1f}%</b> pasien berisiko."
+                recommendation = "Proporsi data cukup seimbang untuk analisis."
+            
+            st.markdown(f"""
+            <div style="background: #f8f9fa; border-radius: 10px; padding: 15px; margin-top: 20px; border-left: 4px solid #A67D45;">
+                <div style="font-weight: 600; color: #A67D45; margin-bottom: 8px;">📌 Interpretasi</div>
+                <div style="color: #333;">
+                    {balance_text}<br><br>
+                    <b>Kesimpulan:</b> {recommendation}
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.warning("⚠️ Kolom target tidak ditemukan dalam data.")
+
+    # -----------------------------------------
+    # TOMBOL NAVIGASI
     # -----------------------------------------
     st.markdown("<br>", unsafe_allow_html=True)
     col_prev, col_spacer, col_next = st.columns([1, 2, 1])
